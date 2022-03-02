@@ -73,6 +73,9 @@ StyleCopReport.xml
 *.pgd
 *.rsp
 *.sbr
+*.sln
+*.vcxproj
+*.vcxproj.*
 *.tlb
 *.tli
 *.tlh
@@ -80,6 +83,7 @@ StyleCopReport.xml
 *.tmp_proj
 *_wpftmp.csproj
 *.log
+*.tlog
 *.vspscc
 *.vssscc
 .builds
