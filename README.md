@@ -8,7 +8,7 @@ Use your wits and whatever you find to survive and escape the backrooms. Good lu
 (Starting at program's "root" directory (x64/release/); these are duplicated to the project directory for debugging.
 
 ## /Text/
-This directory holds all text displayed in the game for easy translation/localization. Files are named based on where they appear. Text is displayed line-by-line as it appears in these files, with no automatic wrap or special formatting unless noted otherwise. Files will be read and text updated once per frame to allow for semi-live editing.
+This directory holds all text displayed in the game for easy translation/localization. Files are named based on where they appear. Text is displayed line-by-line as it appears in these files, with no automatic wrap or special formatting unless noted otherwise. Files will be read and text updated once per frame to allow for semi-live editing. Characters beyond standard 7-bit ASCII are not currently included in the font graphics.
 
 ### menu text
 Menu text files will contain one line for each piece of text in the menu (excluding live values read from program state).
