@@ -64,6 +64,7 @@ int main() {
         // System window management
         window.clear(sf::Color::Black);
         sf::Event event;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::End)) window.close();
         while(window.pollEvent(event)) {
             if(event.type == sf::Event::Closed) window.close();
         }
