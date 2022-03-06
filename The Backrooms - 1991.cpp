@@ -79,7 +79,7 @@ void drawTilemapScreen(sf::Texture tex, int layer) {
     tile.setTexture(tex);
     int tileID, tileX, tileY;
 
-    for(int x = 0; x < 14; x++) {
+    for(int x = 0; x < 16; x++) {
         for(int y = 0; y < 14; y++) {
             tileID = tilemap[layer][x][y];
             tile.setPosition(16.f * x, 16.f * y);
