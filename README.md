@@ -7,13 +7,13 @@ Use your wits and whatever you find to survive and escape the backrooms. Good lu
 # File structure:
 (Starting at program's "root" directory (x64/release/); these are duplicated to the project directory for debugging.
 ## /Text/
-This directory holds all text displayed in the game for easy translation/localization. Files are named based on where they appear. Files are stored as plaintext with no special formatting/escaping unless noted below.
+This directory holds all text displayed in the game for easy translation/localization. Files are named based on where they appear. Files are stored as plaintext with no special formatting/escaping unless otherwise noted.
 
 ## /Tiles/
 This directory holds both tilemaps and tilesheets for the game.
 
 ### tilemaps:
-Standard text files, formatted as exported from Pyxeledit. Header should match the sample below and be followed immediately by a block of tile ID's separated by commas. The game uses the `tileswide [number of tiles]`, `tileshigh [number of tiles]`, and `layer 0` lines to parse the file. <br>
+Standard .txt files, using header matching that exported from PyxelEdit (shown below), followed immediately by a block of tile ID's separated by commas. The game uses the `tileswide [number of tiles]`, `tileshigh [number of tiles]`, and `layer 0` lines to parse the file, so it will crash if they are misplaced or cannot be located. <br>
 _Header:_ <br>
 
     tileswide 16
@@ -22,3 +22,8 @@ _Header:_ <br>
     tileheight 16
 
     layer 0
+
+### tilesheets:
+Standard .png files, arranged in a grid 16 tiles wide. Tiles are each 16 tiles square unless otherwise noted.
+
+Font is 8 pixels wide by 16 pixels high.
