@@ -10,8 +10,7 @@ using namespace std;
 
 // Startup settings
 const string title = "The Backrooms: 1991";
-bool showDebugInfo = true, toggleDebugInfo = false;
-int frameRate = 60;
+bool showDebugInfo = false, toggleDebugInfo = false;
 
 // Global SFML & graphics objects
 sf::RenderTexture buffer;
@@ -26,25 +25,33 @@ sf::Texture titleScreen;
 void drawTilemapScreen(sf::Texture, int layer);
 void loadTilemap(string filename, int layer);
 
+
+
 int main() {
     // Game state
     int screen = 0;
 
-    // Create window
-    sf::RenderWindow window(sf::VideoMode(512, 448), title);
-    window.setFramerateLimit(frameRate);
-
     // Print startup info to terminal
     cout << "Opening " << title << ". Press TAB to toggle debug information.\n";
 
+    // Create window
+    if(showDebugInfo) cout << "Creating window...";
+
+    sf::RenderWindow window(sf::VideoMode(512, 448), title);
+    window.setFramerateLimit(15);
+    buffer.create(256, 224);
+    bufferObj.setScale(2.f, 2.f);
+
+    if(showDebugInfo) cout << "done.";
+
     // Load graphics
     {
-        if(!titleScreen.loadFromFile("Tiles/Title Screen.png")) throw("Unable to load file.");
-    }
+        if(showDebugInfo) cout << "\nLoading graphics...";
 
-    // Initialize framebuffer
-    buffer.create(256,224);
-    bufferObj.setScale(2.f, 2.f);
+        if(!titleScreen.loadFromFile("Tiles/Title Screen.png")) throw("Unable to load file.");
+
+        if(showDebugInfo) cout << "done.";
+    }
 
     loadTilemap("Tiles/Title Screen.txt", 0);
 
@@ -65,7 +72,7 @@ int main() {
         } else toggleDebugInfo = false;
 
         // Game logc
-        if (screen == 0) {
+        if(screen == 0) {
             drawTilemapScreen(titleScreen, 0);
         }
 
@@ -91,8 +98,8 @@ void drawTilemapScreen(sf::Texture tex, int layer) {
             tileID = tilemap[layer][x][y];
             tile.setPosition(16.f * x, 16.f * y);
 
-            tileX = (tileID % 16); tileX *= 16;
-            tileY = (tileID / 16); tileY *= 16;
+            tileX =(tileID % 16); tileX *= 16;
+            tileY =(tileID / 16); tileY *= 16;
 
             tile.setTextureRect(sf::IntRect(tileX, tileY, 16, 16));
 
@@ -101,27 +108,35 @@ void drawTilemapScreen(sf::Texture tex, int layer) {
     }
 }
 void loadTilemap(string filename, int layer) {
-    string line;
+    string line = " ";
+    stringstream linestream;
     int columns, rows;
 
     fstream file(filename, ios::in);
-    if (file.is_open()) {
-        while (line != "tileswide") getline(file, line, ',');
+
+    if(file.is_open()) {
+        // get tilemap width
+        getline(file, line, ' ');
+        if (line != "tileswide") cout << "\nWarning: Unexpected tilemap format.";
         getline(file, line);
         columns = stoi(line);
 
-        while (line != "tileshigh") getline(file, line, ',');
+        // get tilemap height
+        getline(file, line, ' ');
+        if (line != "tileshigh") cout << "\nWarning: Unexpected tilemap format.";
         getline(file, line);
         rows = stoi(line);
 
-        while (line != "layer 0") getline(file, line);
+        // Skip over extra lines
+        while (getline(file, line) && line != "layer 0");
+
+        // Read tile ID's
         for (int y = 0; y < rows; y++) {
             for (int x = 0; x < columns; x++) {
                 getline(file, line, ',');
                 tilemap[layer][x][y] = stoi(line);
             }
-            getline(file, line);
         }
-    }
-    else throw("Unable to open tilemap.");
+
+    } else throw("Unable to open tilemap.");
 }
