@@ -8,9 +8,10 @@ using namespace std;
 
 #include <SFML/Graphics.hpp>
 
-// Startup settings
+// Startup settings / defaults
 const string title = "The Backrooms: 1991";
 bool showDebugInfo = false, toggleDebugInfo = false;
+int maxFrameRate = 60;
 
 // Global SFML & graphics objects
 sf::RenderTexture buffer;
@@ -20,9 +21,12 @@ int tilemap[4][64][64];
 
 // Graphics assets
 sf::Texture titleScreen;
+sf::Texture font;
 
 // Function declarations
 void drawTilemapScreen(sf::Texture, int layer);
+void drawText(int x, int y, string text, sf::Color color);
+void drawText(int x, int y, string text);
 void loadTilemap(string filename, int layer);
 
 
@@ -38,7 +42,7 @@ int main() {
     if(showDebugInfo) cout << "Creating window...";
 
     sf::RenderWindow window(sf::VideoMode(512, 448), title);
-    window.setFramerateLimit(15);
+    window.setFramerateLimit(maxFrameRate);
     buffer.create(256, 224);
     bufferObj.setScale(2.f, 2.f);
 
@@ -48,7 +52,8 @@ int main() {
     {
         if(showDebugInfo) cout << "\nLoading graphics...";
 
-        if(!titleScreen.loadFromFile("Tiles/Title Screen.png")) throw("Unable to load file.");
+        if (!font.loadFromFile("Tiles/Font.png")) throw("Unable to load font tileset.");
+        if (!titleScreen.loadFromFile("Tiles/Title Screen.png")) throw("Unable to load title screen tileset.");
 
         if(showDebugInfo) cout << "done.";
     }
@@ -57,6 +62,7 @@ int main() {
 
     while(window.isOpen()) {
         // System window management
+        window.clear(sf::Color::Black);
         sf::Event event;
         while(window.pollEvent(event)) {
             if(event.type == sf::Event::Closed) window.close();
@@ -74,10 +80,10 @@ int main() {
         // Game logc
         if(screen == 0) {
             drawTilemapScreen(titleScreen, 0);
+            drawText(32, 192, "Text rendering works!", sf::Color::Cyan);
         }
 
         // Update graphics
-        window.clear(sf::Color::Black);
         buffer.display();
         bufferObj.setTexture(buffer.getTexture());
         window.draw(bufferObj);
@@ -107,10 +113,47 @@ void drawTilemapScreen(sf::Texture tex, int layer) {
         }
     }
 }
+void drawText(int x, int y, string txt, sf::Color color) {
+    sf::Sprite text;
+    text.setTexture(font);
+    text.setColor(color);
+
+    int c, cx, cy;
+
+    for (int i = 0; i < txt.length(); i++) {
+        int c = txt[i] - 32;
+        cx = c % 16; cx *= 8;
+        cy = c / 16; cy *= 16;
+
+        text.setTextureRect(sf::IntRect(cx, cy, 8, 16));
+        text.setPosition(x, y);
+        buffer.draw(text);
+        x += 8;
+    }
+}
+void drawText(int x, int y, string txt) {
+    sf::Sprite text;
+    text.setTexture(font);
+    text.setColor(sf::Color::Black);
+
+    int c, cx, cy;
+
+    for (int i = 0; i < txt.length(); i++) {
+        int c = txt[i] - 32;
+        cx = c % 16; cx *= 8;
+        cy = c / 16; cy *= 16;
+
+        text.setTextureRect(sf::IntRect(cx, cy, 8, 16));
+        text.setPosition(x, y);
+        buffer.draw(text);
+        x += 8;
+    }
+}
 void loadTilemap(string filename, int layer) {
     string line = " ";
     stringstream linestream;
     int columns, rows;
+    string errorText = "Unable to open tilemap:" + filename;
 
     fstream file(filename, ios::in);
 
