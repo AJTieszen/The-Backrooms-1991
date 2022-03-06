@@ -12,6 +12,7 @@ using namespace std;
 const string title = "The Backrooms: 1991";
 bool showDebugInfo = false, toggleDebugInfo = false;
 int maxFrameRate = 60;
+int screen = 0;
 
 // Global SFML & graphics objects
 sf::RenderTexture buffer;
@@ -20,8 +21,9 @@ sf::Sprite bufferObj;
 int tilemap[4][64][64];
 
 // Graphics assets
-sf::Texture titleScreen;
 sf::Texture font;
+sf::Texture titleScreen;
+sf::Texture menu;
 
 // Function declarations
 void drawTilemapScreen(sf::Texture, int layer);
@@ -33,7 +35,6 @@ void loadTilemap(string filename, int layer);
 
 int main() {
     // Game state
-    int screen = 0;
 
     // Print startup info to terminal
     cout << "Opening " << title << ". Press TAB to toggle debug information.\n";
@@ -54,15 +55,16 @@ int main() {
 
         if (!font.loadFromFile("Tiles/Font.png")) throw("Unable to load font tileset.");
         if (!titleScreen.loadFromFile("Tiles/Title Screen.png")) throw("Unable to load title screen tileset.");
+        if (!menu.loadFromFile("Tiles/Menu.png")) throw("Unable to load font tileset.");
 
         if(showDebugInfo) cout << "done.";
     }
 
     loadTilemap("Tiles/Title Screen.txt", 0);
+    loadTilemap("Tiles/Main Menu.txt", 1);
 
     while(window.isOpen()) {
         // System window management
-        window.clear(sf::Color::Black);
         sf::Event event;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::End)) window.close();
         while(window.pollEvent(event)) {
@@ -79,9 +81,15 @@ int main() {
         } else toggleDebugInfo = false;
 
         // Game logc
-        if(screen == 0) {
+        if(screen == 0 /* Title Screen */) {
             drawTilemapScreen(titleScreen, 0);
-            drawText(32, 192, "Text rendering works!", sf::Color::Cyan);
+
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Enter)) screen++;
+        }
+        if (screen == 1 /* Main Menu */) {
+            drawTilemapScreen(menu, 1);
+
+
         }
 
         // Update graphics
@@ -89,6 +97,7 @@ int main() {
         bufferObj.setTexture(buffer.getTexture());
         window.draw(bufferObj);
         window.display();
+        window.clear(sf::Color::Black);
     }
 }
 
@@ -122,7 +131,7 @@ void drawText(int x, int y, string txt, sf::Color color) {
     int c, cx, cy;
 
     for (int i = 0; i < txt.length(); i++) {
-        int c = txt[i] - 32;
+        c = txt[i] - 32;
         cx = c % 16; cx *= 8;
         cy = c / 16; cy *= 16;
 
