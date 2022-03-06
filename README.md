@@ -15,9 +15,9 @@ This directory holds both tilemaps and tilesheets for the game.
 ### tilemaps:
 Standard text files, formatted as exported from Pyxeledit (set to layer 0). Formatting must be followed or the program will likely crash. <br>
 _Header:_ <br>
-  tileswide 16
-  tileshigh 14
-  tilewidth 16
-  tileheight 16
+    tileswide 16
+    tileshigh 14
+    tilewidth 16
+    tileheight 16
 
-  layer 0
+    layer 0
