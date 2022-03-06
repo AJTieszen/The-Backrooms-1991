@@ -13,8 +13,9 @@ This directory holds all text displayed in the game for easy translation/localiz
 This directory holds both tilemaps and tilesheets for the game.
 
 ### tilemaps:
-Standard text files, formatted as exported from Pyxeledit (set to layer 0). Formatting must be followed or the program will likely crash. <br>
+Standard text files, formatted as exported from Pyxeledit. Header should match the sample below and be followed immediately by a block of tile ID's separated by commas. The game uses the `tileswide [number of tiles]`, `tileshigh [number of tiles]`, and `layer 0` lines to parse the file. <br>
 _Header:_ <br>
+
     tileswide 16
     tileshigh 14
     tilewidth 16
