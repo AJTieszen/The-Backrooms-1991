@@ -89,7 +89,19 @@ int main() {
         if (screen == 1 /* Main Menu */) {
             drawTilemapScreen(menu, 1);
 
+            // Load and display text
+            string line;
+            fstream file("Text/Main Menu.txt", ios::in);
+            if (file.is_open()) {
+                getline(file, line);
+                drawText(128 - 4 * line.length(), 32, line);
 
+                for (int i = 0; i < 4; i++) {
+                    getline(file, line);
+                    drawText(100, 32 * i + 64, line);
+                }
+            }
+            else throw("Unable to open tilemap.");
         }
 
         // Update graphics
@@ -176,5 +188,6 @@ void loadTilemap(string filename, int layer) {
             }
         }
 
-    } else throw("Unable to open tilemap.");
+    }
+    else throw("Unable to open tilemap.");
 }

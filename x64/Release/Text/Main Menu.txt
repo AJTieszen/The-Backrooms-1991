@@ -1,0 +1,5 @@
+Main menu:
+Play
+Controls
+Settings
+Quit
