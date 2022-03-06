@@ -133,22 +133,7 @@ void drawText(int x, int y, string txt, sf::Color color) {
     }
 }
 void drawText(int x, int y, string txt) {
-    sf::Sprite text;
-    text.setTexture(font);
-    text.setColor(sf::Color::Black);
-
-    int c, cx, cy;
-
-    for (int i = 0; i < txt.length(); i++) {
-        int c = txt[i] - 32;
-        cx = c % 16; cx *= 8;
-        cy = c / 16; cy *= 16;
-
-        text.setTextureRect(sf::IntRect(cx, cy, 8, 16));
-        text.setPosition(x, y);
-        buffer.draw(text);
-        x += 8;
-    }
+    drawText(x, y, txt, sf::Color::Black);
 }
 void loadTilemap(string filename, int layer) {
     string line = " ";
