@@ -1,7 +1,7 @@
-tileswide 16
-tileshigh 14
-tilewidth 16
-tileheight 16
+tileswide,16
+tileshigh,14
+tilewidth,16
+tileheight,16
 
 layer 0
 3,23,34,35,36,38,38,44,45,45,46,38,38,1,0,0,

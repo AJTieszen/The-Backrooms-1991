@@ -2,6 +2,8 @@
 //
 
 #include <iostream>
+#include <fstream>
+#include <sstream>
 using namespace std;
 
 #include <SFML/Graphics.hpp>
@@ -20,8 +22,9 @@ int tilemap[4][64][64];
 // Graphics assets
 sf::Texture titleScreen;
 
-// Function definitions
+// Function declarations
 void drawTilemapScreen(sf::Texture, int layer);
+void loadTilemap(string filename, int layer);
 
 int main() {
     // Game state
@@ -43,6 +46,8 @@ int main() {
     buffer.create(256,224);
     bufferObj.setScale(2.f, 2.f);
 
+    loadTilemap("Tiles/Title Screen.txt", 0);
+
     while(window.isOpen()) {
         // System window management
         sf::Event event;
@@ -60,7 +65,9 @@ int main() {
         } else toggleDebugInfo = false;
 
         // Game logc
-        drawTilemapScreen(titleScreen, 0);
+        if (screen == 0) {
+            drawTilemapScreen(titleScreen, 0);
+        }
 
         // Update graphics
         window.clear(sf::Color::Black);
@@ -85,11 +92,36 @@ void drawTilemapScreen(sf::Texture tex, int layer) {
             tile.setPosition(16.f * x, 16.f * y);
 
             tileX = (tileID % 16); tileX *= 16;
-            tileY = (tileID % 16); tileY *= 16;
+            tileY = (tileID / 16); tileY *= 16;
 
             tile.setTextureRect(sf::IntRect(tileX, tileY, 16, 16));
 
             buffer.draw(tile);
         }
     }
+}
+void loadTilemap(string filename, int layer) {
+    string line;
+    int columns, rows;
+
+    fstream file(filename, ios::in);
+    if (file.is_open()) {
+        while (line != "tileswide") getline(file, line, ',');
+        getline(file, line);
+        columns = stoi(line);
+
+        while (line != "tileshigh") getline(file, line, ',');
+        getline(file, line);
+        rows = stoi(line);
+
+        while (line != "layer 0") getline(file, line);
+        for (int y = 0; y < rows; y++) {
+            for (int x = 0; x < columns; x++) {
+                getline(file, line, ',');
+                tilemap[layer][x][y] = stoi(line);
+            }
+            getline(file, line);
+        }
+    }
+    else throw("Unable to open tilemap.");
 }
