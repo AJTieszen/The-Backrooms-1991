@@ -31,6 +31,10 @@ void drawText(int x, int y, string text, sf::Color color);
 void drawText(int x, int y, string text);
 void loadTilemap(string filename, int layer);
 
+// Game States
+void TitleScreen();
+void MainMenu();
+
 
 
 int main() {
@@ -81,27 +85,10 @@ int main() {
         } else toggleDebugInfo = false;
 
         // Game logc
-        if(screen == 0 /* Title Screen */) {
-            drawTilemapScreen(titleScreen, 0);
+        switch (screen) {
+        case 0: TitleScreen(); break;
+        case 1: MainMenu(); break;
 
-            if (sf::Keyboard::isKeyPressed(sf::Keyboard::Enter)) screen++;
-        }
-        if (screen == 1 /* Main Menu */) {
-            drawTilemapScreen(menu, 1);
-
-            // Load and display text
-            string line;
-            fstream file("Text/Main Menu.txt", ios::in);
-            if (file.is_open()) {
-                getline(file, line);
-                drawText(128 - 4 * line.length(), 32, line);
-
-                for (int i = 0; i < 4; i++) {
-                    getline(file, line);
-                    drawText(100, 32 * i + 64, line);
-                }
-            }
-            else throw("Unable to open tilemap.");
         }
 
         // Update graphics
@@ -148,7 +135,7 @@ void drawText(int x, int y, string txt, sf::Color color) {
         cy = c / 16; cy *= 16;
 
         text.setTextureRect(sf::IntRect(cx, cy, 8, 16));
-        text.setPosition(x, y);
+        text.setPosition((float)x, (float)y);
         buffer.draw(text);
         x += 8;
     }
@@ -190,4 +177,27 @@ void loadTilemap(string filename, int layer) {
 
     }
     else throw("Unable to open tilemap.");
+}
+
+// Game States
+void TitleScreen() {
+    drawTilemapScreen(titleScreen, 0);
+
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Enter)) screen++;
+}
+void MainMenu() {
+    drawTilemapScreen(menu, 1);
+
+    // Load and display text
+    string line;
+    fstream file("Text/Main Menu.txt", ios::in);
+    if (file.is_open()) {
+        getline(file, line);
+        drawText(128 - 4 * (int)line.length(), 32, line);
+
+        for (int i = 0; i < 4; i++) {
+            getline(file, line);
+            drawText(100, 32 * i + 64, line);
+        }
+    }
 }
