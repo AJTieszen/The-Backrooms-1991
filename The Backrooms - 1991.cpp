@@ -4,15 +4,20 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <array>
 using namespace std;
 
 #include <SFML/Graphics.hpp>
 
-// Startup settings / defaults
+// Startup settings & defaults
 const string title = "The Backrooms: 1991";
 bool showDebugInfo = false, toggleDebugInfo = false;
-int maxFrameRate = 60;
+int maxFrameRate = 6;
+enum keys { up, dn, lt, rt, start, select, a, b, x, y, lb, rb};
+
+// State data
 int screen = 0;
+bool keysPressed[12]; // up, dn, lt, rt, start, select, a, b, x, y, lb, rb
 
 // Global SFML & graphics objects
 sf::RenderTexture buffer;
@@ -25,11 +30,12 @@ sf::Texture font;
 sf::Texture titleScreen;
 sf::Texture menu;
 
-// Function declarations
+// Engine functions
 void drawTilemapScreen(sf::Texture, int layer);
 void drawText(int x, int y, string text, sf::Color color);
 void drawText(int x, int y, string text);
 void loadTilemap(string filename, int layer);
+void readInput();
 
 // Game States
 void TitleScreen();
@@ -70,7 +76,7 @@ int main() {
     while(window.isOpen()) {
         // System window management
         sf::Event event;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::End)) window.close();
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::End)) window.close(); // Quick exit
         while(window.pollEvent(event)) {
             if(event.type == sf::Event::Closed) window.close();
         }
@@ -85,10 +91,16 @@ int main() {
         } else toggleDebugInfo = false;
 
         // Game logc
+        readInput();
+
         switch (screen) {
         case 0: TitleScreen(); break;
         case 1: MainMenu(); break;
 
+        default:
+            buffer.clear(sf::Color::Blue);
+            drawText(0, 0, "Error: unrecognized game state.", sf::Color::White);
+            drawText(0, 16, "Screen: " + to_string(screen), sf::Color::Cyan);
         }
 
         // Update graphics
@@ -178,12 +190,69 @@ void loadTilemap(string filename, int layer) {
     }
     else throw("Unable to open tilemap.");
 }
+void readInput() {
+    for (int i = 0; i < sizeof(keysPressed); i++) {
+        keysPressed[i] = false;
+    }
+
+    // Keyboard
+    {
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W))
+            keysPressed[up] = true;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S))
+            keysPressed[dn] = true;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A))
+            keysPressed[lt] = true;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D))
+            keysPressed[rt] = true;
+    }
+
+    // Controller
+    if (sf::Joystick::isConnected (0)) {
+        if (sf::Joystick::isButtonPressed(0, 0))
+            keysPressed[a] = true;
+        if (sf::Joystick::isButtonPressed(0, 1))
+            keysPressed[b] = true;
+        if (sf::Joystick::isButtonPressed(0, 2))
+            keysPressed[x] = true;
+        if (sf::Joystick::isButtonPressed(0, 3))
+            keysPressed[y] = true;
+
+        if (sf::Joystick::isButtonPressed(0, 4))
+            keysPressed[lb] = true;
+        if (sf::Joystick::isButtonPressed(0, 5))
+            keysPressed[rb] = true;
+        if (sf::Joystick::isButtonPressed(0, 6))
+            keysPressed[select] = true;
+        if (sf::Joystick::isButtonPressed(0, 7))
+            keysPressed[start] = true;
+
+        if (sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::Y) < -50 || sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovY) > 50)
+            keysPressed[up] = true;
+        if (sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::Y) > 50 || sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovY) < -50)
+            keysPressed[dn] = true;
+        if (sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::X) < -50 || sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovX) > 50)
+            keysPressed[lt] = true;
+        if (sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::X) > 50 || sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovX) < -50)
+            keysPressed[rt] = true;
+    }
+
+
+    // Debug
+    if (showDebugInfo) {
+        cout << "\n Keys Pressed: ";
+        for (int i = 0; i < sizeof(keysPressed); i++) {
+            cout << keysPressed [i] << ' ';
+        }
+        cout << sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::Y);
+    }
+}
 
 // Game States
 void TitleScreen() {
     drawTilemapScreen(titleScreen, 0);
 
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Enter)) screen++;
+    if (keysPressed[start] || keysPressed[a]) screen++;
 }
 void MainMenu() {
     drawTilemapScreen(menu, 1);
