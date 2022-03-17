@@ -31,6 +31,7 @@ int tilemap[4][64][64];
 sf::Texture font;
 sf::Texture titleScreen;
 sf::Texture menu;
+sf::Texture controls;
 
 // Engine functions
 void drawTilemapScreen(sf::Texture, int layer);
@@ -72,6 +73,7 @@ int main() {
         if(!font.loadFromFile("Tiles/Font.png")) throw("Unable to load font tileset.");
         if(!titleScreen.loadFromFile("Tiles/Title Screen.png")) throw("Unable to load title screen tileset.");
         if(!menu.loadFromFile("Tiles/Menu.png")) throw("Unable to load font tileset.");
+        if(!controls.loadFromFile("Tiles/Controls.png")) throw("Unable to load controls graphics.");
 
         if(showDebugInfo) cout << "done.";
     }
@@ -330,7 +332,9 @@ void MainMenu() {
         switch (selection) {
         case 0: screen++;
             break;
-        case 1: screen = -1;
+        case 1:
+            screen = -1;
+            loadTilemap("Tiles/Controls.txt", 0);
             break;
         case 2: screen = -10;
             break;
@@ -350,6 +354,22 @@ void MainMenu() {
     }
 }
 void Controls() {
+    drawTilemapScreen(controls, 0);
+
+    string line;
+    fstream file("Text/Controls.txt", ios::in);
+    if (file.is_open()) {
+        getline(file, line);
+        drawText(16, 16, line);
+        getline(file, line);
+        drawText(112, 16, line);
+        getline(file, line);
+        drawText(192, 16, line);
+        getline(file, line);
+        drawText(128, 160, line);
+        getline(file, line);
+        drawText(208, 160, line);
+    }
 
 }
 
