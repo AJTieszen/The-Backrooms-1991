@@ -12,7 +12,7 @@ using namespace std;
 // Startup settings & defaults
 const string title = "The Backrooms: 1991";
 bool showDebugInfo = false, toggleDebugInfo = false;
-int maxFrameRate = 144;
+int maxFrameRate = 60;
 enum keys { up, dn, lt, rt, start, select, a, b, x, y, lb, rb};
 
 // State data
@@ -40,11 +40,15 @@ void loadTilemap(string filename, int layer);
 void readInput();
 int updateFrameTime();
 
+// Game Functions
+void drawHighlightBox(int x, int y, int width);
+
 // Game States
 void TitleScreen();
 void MainMenu();
+void Controls();
 
-
+// Screen Effects
 
 int main() {
     // Game state
@@ -98,6 +102,7 @@ int main() {
         switch(screen) {
         case 0: TitleScreen(); break;
         case 1: MainMenu(); break;
+        case -1: Controls(); break;
 
         default:
             buffer.clear(sf::Color::Blue);
@@ -265,6 +270,29 @@ int updateFrameTime() {
     return frametime.asMilliseconds();
 }
 
+// Game Functions
+void drawHighlightBox(int x, int y, int width) {
+    sf::Sprite tile;
+    tile.setTexture(menu);
+    tile.setColor(sf::Color(255, 255, 255, 64));
+
+    for(int row = 0; row < 3; row++) {
+        tile.setTextureRect(sf::IntRect(96 + row * 48, 32, 16, 16));
+        tile.setPosition(x * 16,(y + row) * 16);
+        buffer.draw(tile);
+
+        for(int i = 1; i < width; i++) {
+            tile.setTextureRect(sf::IntRect(112 + row * 48, 32, 16, 16));
+            tile.setPosition((x + i) * 16,(y + row) * 16);
+            buffer.draw(tile);
+        }
+
+        tile.setTextureRect(sf::IntRect(128 + row * 48, 32, 16, 16));
+        tile.setPosition((x + width) * 16,(y + row) * 16);
+        buffer.draw(tile);
+    }
+}
+
 // Game States
 void TitleScreen() {
     drawTilemapScreen(titleScreen, 0);
@@ -280,22 +308,26 @@ void MainMenu() {
     // Load and display text
     string line;
     fstream file("Text/Main Menu.txt", ios::in);
-    if(file.is_open()) {
+    if (file.is_open()) {
         getline(file, line);
-        drawText(128 - 4 *(int)line.length(), 32, line);
+        drawText(128 - 4 * (int)line.length(), 32, line);
 
-        for(int i = 0; i < 4; i++) {
+        for (int i = 0; i < 4; i++) {
             getline(file, line);
             drawText(100, 32 * i + 64, line);
         }
     }
 
-    // Menu functionality
+    // Menu Visuals
+    drawHighlightBox(4, 3 + selection * 2, 7);
 
-    cout << " --- " << selection << " --- \n";
- 
-    if((keysPressed[a] || keysPressed[start]) && inputTimer == 0) {
-        switch(selection) {
+    // Menu functionality 
+    if (keysPressed[start] && inputTimer == 0) { // Start game regardless of selection
+        screen++;
+        inputTimer = 250;
+    }
+    if ((keysPressed[a]) && inputTimer == 0) { // Select option
+        switch (selection) {
         case 0: screen++;
             break;
         case 1: screen = -1;
@@ -306,14 +338,19 @@ void MainMenu() {
         }
         inputTimer = 250;
     }
-    if (keysPressed[up] && inputTimer == 0) {
+    if(keysPressed[up] && inputTimer == 0) { // Move selection down
         selection--;
-        if (selection < 0) selection = 3;
-        inputTimer = 250;
+        if(selection < 0) selection = 3;
+        inputTimer = 150;
     }
-    if (keysPressed[dn] && inputTimer == 0) {
+    if(keysPressed[dn] && inputTimer == 0) { // Move selection up
         selection++;
-        if (selection > 3) selection = 0;
-        inputTimer = 250;
+        if(selection > 3) selection = 0;
+        inputTimer = 150;
     }
 }
+void Controls() {
+
+}
+
+// Screen Effects
