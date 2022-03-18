@@ -1,0 +1,7 @@
+Move
+Attack
+Items
+Interact
+Run
+Remap Controls
+Return
