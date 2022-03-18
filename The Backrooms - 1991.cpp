@@ -224,6 +224,20 @@ void readInput() {
             keysPressed[lt] = true;
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D))
             keysPressed[rt] = true;
+
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::E))
+            keysPressed[a] = true;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Q))
+            keysPressed[x] = true;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::R))
+            keysPressed[b] = true;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::F))
+            keysPressed[y] = true;
+
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Enter))
+            keysPressed[start] = true;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Escape))
+            keysPressed[select] = true;
     }
 
     // Controller
@@ -280,17 +294,17 @@ void drawHighlightBox(int x, int y, int width) {
 
     for(int row = 0; row < 3; row++) {
         tile.setTextureRect(sf::IntRect(96 + row * 48, 32, 16, 16));
-        tile.setPosition(x * 16,(y + row) * 16);
+        tile.setPosition(x * 16.f,(y + row) * 16.f);
         buffer.draw(tile);
 
         for(int i = 1; i < width; i++) {
             tile.setTextureRect(sf::IntRect(112 + row * 48, 32, 16, 16));
-            tile.setPosition((x + i) * 16,(y + row) * 16);
+            tile.setPosition((x + i) * 16.f,(y + row) * 16.f);
             buffer.draw(tile);
         }
 
         tile.setTextureRect(sf::IntRect(128 + row * 48, 32, 16, 16));
-        tile.setPosition((x + width) * 16,(y + row) * 16);
+        tile.setPosition((x + width) * 16.f,(y + row) * 16.f);
         buffer.draw(tile);
     }
 }
@@ -323,24 +337,22 @@ void MainMenu() {
     // Menu Visuals
     drawHighlightBox(4, 3 + selection * 2, 7);
 
-    // Menu functionality 
-    if (keysPressed[start] && inputTimer == 0) { // Start game regardless of selection
-        screen++;
-        inputTimer = 250;
-    }
-    if ((keysPressed[a]) && inputTimer == 0) { // Select option
+    // Menu functionality
+    if ((keysPressed[a] || keysPressed[start]) && inputTimer == 0) { // Select option
         switch (selection) {
         case 0: screen++;
             break;
         case 1:
             screen = -1;
             loadTilemap("Tiles/Controls.txt", 0);
+            loadTilemap("Tiles/Controls Menu.txt", 1);
             break;
         case 2: screen = -10;
             break;
         case 3: window.close();
         }
         inputTimer = 250;
+        selection = 0;
     }
     if(keysPressed[up] && inputTimer == 0) { // Move selection down
         selection--;
@@ -355,10 +367,12 @@ void MainMenu() {
 }
 void Controls() {
     drawTilemapScreen(controls, 0);
+    drawTilemapScreen(menu, 1);
 
     string line;
     fstream file("Text/Controls.txt", ios::in);
     if (file.is_open()) {
+        // Label buttons
         getline(file, line);
         drawText(16, 16, line);
         getline(file, line);
@@ -369,8 +383,37 @@ void Controls() {
         drawText(128, 160, line);
         getline(file, line);
         drawText(208, 160, line);
+
+        // Options
+        getline(file, line);
+        drawText(32, 192, line);
+        getline(file, line);
+        drawText(175, 192, line);
     }
 
+    //menu display
+    drawHighlightBox(selection * 9, 11, 9 - selection * 3);
+
+    // Menu Functionality
+    if ((keysPressed[a] || keysPressed[start]) && inputTimer == 0) {
+        switch (selection) {
+        case 0:
+            return;
+        case 1:
+            screen = 0;
+            loadTilemap("Tiles/Title Screen.txt", 0);
+            loadTilemap("Tiles/Main Menu.txt", 1);
+            return;
+        }
+    }
+    if (keysPressed[lt] && inputTimer == 0 && selection > 0) {
+        selection--;
+        inputTimer = 150;
+    }
+    if (keysPressed[rt] && inputTimer == 0 && selection < 1) {
+        selection++;
+        inputTimer = 150;
+    }
 }
 
 // Screen Effects
