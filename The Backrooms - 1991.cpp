@@ -11,13 +11,17 @@ using namespace std;
 
 // Startup settings & defaults
 const string title = "The Backrooms: 1991";
-bool showDebugInfo = false, toggleDebugInfo = false;
+bool showDebugInfo = true, toggleDebugInfo = false;
 int maxFrameRate = 60;
 enum keys { up, dn, lt, rt, start, select, a, b, x, y, lb, rb};
+int ctrlMap[12]; // jst y inv, jst x inv, dpad x inv, dpad y inv, start, select, a, b, x, y, lb, rb
 
 // State data
 int screen, inputTimer, frameTime, selection = 0;
 bool keysPressed[12]; // up, dn, lt, rt, start, select, a, b, x, y, lb, rb
+
+// Game state
+int mappedButtons = 0;
 
 // Global SFML & graphics objects
 sf::Clock clk;
@@ -40,11 +44,14 @@ void drawText(int x, int y, string text);
 void loadTilemap(string filename, int layer);
 void readInput();
 int updateFrameTime();
+void MapControls();
+void saveControlMap();
+void loadControlMap();
 
 // Game Functions
 void drawHighlightBox(int x, int y, int width);
 
-// Game States
+// Game Screens
 void TitleScreen();
 void MainMenu();
 void Controls();
@@ -52,8 +59,6 @@ void Controls();
 // Screen Effects
 
 int main() {
-    // Game state
-
     // Print startup info to terminal
     cout << "Opening " << title << ". Press TAB to toggle debug information.\n";
 
@@ -81,6 +86,9 @@ int main() {
     loadTilemap("Tiles/Title Screen.txt", 0);
     loadTilemap("Tiles/Main Menu.txt", 1);
 
+    // Load controls
+    loadControlMap();
+
     while(window.isOpen()) {
         // System window management
         sf::Event event;
@@ -105,6 +113,7 @@ int main() {
         case 0: TitleScreen(); break;
         case 1: MainMenu(); break;
         case -1: Controls(); break;
+        case -2: MapControls(); break;
 
         default:
             buffer.clear(sf::Color::Blue);
@@ -170,7 +179,7 @@ void loadTilemap(string filename, int layer) {
     int columns, rows;
     string errorText = "Unable to open tilemap:" + filename;
 
-    fstream file(filename, ios::in);
+    ifstream file(filename);
 
     if(file.is_open()) {
         // get tilemap width
@@ -201,7 +210,7 @@ void loadTilemap(string filename, int layer) {
 }
 void readInput() {
     // Reset from last frame
-    for(int i = 0; i < sizeof(keysPressed); i++) {
+    for(int i = 0; i < sizeof(keysPressed) / sizeof(keysPressed[0]); i++) {
         keysPressed[i] = false;
     }
 
@@ -242,41 +251,164 @@ void readInput() {
 
     // Controller
     if(sf::Joystick::isConnected(0)) {
-        if(sf::Joystick::isButtonPressed(0, 0))
+        if(sf::Joystick::isButtonPressed(0, ctrlMap[a]))
             keysPressed[a] = true;
-        if(sf::Joystick::isButtonPressed(0, 1))
+        if(sf::Joystick::isButtonPressed(0, ctrlMap[b]))
             keysPressed[b] = true;
-        if(sf::Joystick::isButtonPressed(0, 2))
+        if(sf::Joystick::isButtonPressed(0, ctrlMap[x]))
             keysPressed[x] = true;
-        if(sf::Joystick::isButtonPressed(0, 3))
+        if(sf::Joystick::isButtonPressed(0, ctrlMap[y]))
             keysPressed[y] = true;
 
-        if(sf::Joystick::isButtonPressed(0, 4))
+        if(sf::Joystick::isButtonPressed(0, ctrlMap[lb]))
             keysPressed[lb] = true;
-        if(sf::Joystick::isButtonPressed(0, 5))
+        if(sf::Joystick::isButtonPressed(0, ctrlMap[rb]))
             keysPressed[rb] = true;
-        if(sf::Joystick::isButtonPressed(0, 6))
+        if(sf::Joystick::isButtonPressed(0, ctrlMap[select]))
             keysPressed[select] = true;
-        if(sf::Joystick::isButtonPressed(0, 7))
+        if(sf::Joystick::isButtonPressed(0, ctrlMap[start]))
             keysPressed[start] = true;
 
-        if(sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::Y) < -50 || sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovY) > 50)
+        if(sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::Y) * ctrlMap[0] > 50 || sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovY) * ctrlMap[2] > 50)
             keysPressed[up] = true;
-        if(sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::Y) > 50 || sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovY) < -50)
+        if(sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::Y) * ctrlMap[0] < -50 || sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovY) * ctrlMap[2] < -50)
             keysPressed[dn] = true;
-        if(sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::X) < -50 || sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovX) > 50)
+        if(sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::X) * ctrlMap[1] > 50 || sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovX) * ctrlMap[3] > 50)
             keysPressed[lt] = true;
-        if(sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::X) > 50 || sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovX) < -50)
+        if(sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::X) * ctrlMap[1] < -50 || sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovX) * ctrlMap[3] < -50)
             keysPressed[rt] = true;
     }
-
-    // Debug
-    if(showDebugInfo) {
-        cout << "\n Keys Pressed: ";
-        for(int i = 0; i < sizeof(keysPressed); i++) {
-            cout << keysPressed [i] << ' ';
+}
+void MapControls() {
+    if (!sf::Joystick::isConnected(0)) {
+        screen = -1;
+        if (showDebugInfo) {
+            cout << "\n No joystick found to map.";
         }
-        cout << " | Input Timer : " << inputTimer;
+    }
+
+    if (showDebugInfo) cout << "\nMapped buttons:" << mappedButtons;
+
+    buffer.clear(sf::Color::Black);
+
+    string line;
+    ifstream file("Text/Map Controls.txt");
+    if (file.is_open()) {
+        for (int i = 0; i <= mappedButtons; i++) getline(file, line);
+        drawText(128 - 4 * (int)line.length(), 16, line, sf::Color::White);
+    }
+
+    switch (mappedButtons) {
+        // Directional inputs
+    case 0:
+        if (!sf::Joystick::hasAxis(0, sf::Joystick::Axis::Y)) mappedButtons++;
+        if (sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::Y) > 50.f) {
+            ctrlMap[0] = 1;
+            mappedButtons++;
+        }
+        if (sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::Y) < -50.f) {
+            ctrlMap[0] = -1;
+            mappedButtons++;
+        }
+        break;
+    case 1:
+        if (!sf::Joystick::hasAxis(0, sf::Joystick::Axis::X)) mappedButtons++;
+        if (sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::X) > 50.f) {
+            ctrlMap[1] = -1;
+            mappedButtons++;
+        }
+        if (sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::X) < -50.f) {
+            ctrlMap[1] = 1;
+            mappedButtons++;
+        }
+        break;
+    case 2:
+        if (!sf::Joystick::hasAxis(0, sf::Joystick::Axis::PovY)) mappedButtons++;
+        if (sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovY) > 50.f) {
+            ctrlMap[2] = 1;
+            mappedButtons++;
+        }
+        if (sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovY) < -50.f) {
+            ctrlMap[2] = -1;
+            mappedButtons++;
+        }
+        break;
+    case 3:
+        if (!sf::Joystick::hasAxis(0, sf::Joystick::Axis::PovX)) mappedButtons++;
+        if (sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovX) > 50.f) {
+            ctrlMap[3] = -1;
+            mappedButtons++;
+        }
+        if (sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovX) < -50.f) {
+            ctrlMap[3] = 1;
+            mappedButtons++;
+        }
+        break;
+
+        // Cleanup
+    case 12:
+        screen++;
+        saveControlMap();
+        break;
+
+        // Button inputs
+    default:
+        for (int i = 0; i < sf::Joystick::getButtonCount(0); i++) {
+            if (sf::Joystick::isButtonPressed(0, i) && inputTimer == 0) {
+                ctrlMap[mappedButtons] = i;
+                inputTimer = 250;
+                if (mappedButtons < sizeof(ctrlMap) / sizeof(ctrlMap[i])) mappedButtons++;
+            }
+        }
+        break;
+    }
+}
+void saveControlMap() {
+    if (showDebugInfo) {
+        cout << "\nWriting control map...";
+    }
+
+    ofstream file;
+    file.open("Controls.dat", ios::out);
+    file << "Axis inversion:\n";
+    for (int i = 0; i < 4; i++) {
+        file << ctrlMap[i] << "\n";
+    }
+    file << "Button ID's:\n";
+    for (int i = 4; i < sizeof(ctrlMap) / sizeof(ctrlMap[i]); i++) {
+        file << ctrlMap[i] << "\n";
+    }
+
+    file.close();
+}
+void loadControlMap() {
+    if (showDebugInfo) {
+        cout << "\nReading control map...";
+    }
+
+    ifstream file ("controls.dat");
+    string line;
+
+    if (file.is_open()) {
+        getline(file, line);
+        if (line != "Axis inversion:") cout << "\nWarining: controller map may not be formatted correctly.";
+        for (int i = 0; i < 4; i++) {
+            getline(file, line);
+            ctrlMap[i] = stoi(line);
+        }
+
+        getline(file, line);
+        if (line != "Button ID's:") cout << "\nWarining: controller map may not be formatted correctly.";
+        for (int i = 4; i < sizeof(ctrlMap) / sizeof(ctrlMap[i]); i++) {
+            getline(file, line);
+            ctrlMap[i] = stoi(line);
+        }
+
+        file.close();
+    }
+
+    if (showDebugInfo) {
+        cout << "Done.";
     }
 }
 int updateFrameTime() {
@@ -309,7 +441,7 @@ void drawHighlightBox(int x, int y, int width) {
     }
 }
 
-// Game States
+// Game Screens
 void TitleScreen() {
     drawTilemapScreen(titleScreen, 0);
 
@@ -323,7 +455,7 @@ void MainMenu() {
 
     // Load and display text
     string line;
-    fstream file("Text/Main Menu.txt", ios::in);
+    ifstream file("Text/Main Menu.txt");
     if (file.is_open()) {
         getline(file, line);
         drawText(128 - 4 * (int)line.length(), 32, line);
@@ -370,7 +502,7 @@ void Controls() {
     drawTilemapScreen(menu, 1);
 
     string line;
-    fstream file("Text/Controls.txt", ios::in);
+    ifstream file("Text/Controls.txt");
     if (file.is_open()) {
         // Label buttons
         getline(file, line);
@@ -398,13 +530,17 @@ void Controls() {
     if ((keysPressed[a] || keysPressed[start]) && inputTimer == 0) {
         switch (selection) {
         case 0:
-            return;
+            screen--;
+            mappedButtons = 0;
+            break;
         case 1:
             screen = 0;
             loadTilemap("Tiles/Title Screen.txt", 0);
             loadTilemap("Tiles/Main Menu.txt", 1);
-            return;
+            break;
         }
+
+        selection = 0;
     }
     if (keysPressed[lt] && inputTimer == 0 && selection > 0) {
         selection--;
@@ -415,5 +551,3 @@ void Controls() {
         inputTimer = 150;
     }
 }
-
-// Screen Effects

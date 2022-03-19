@@ -1,0 +1,12 @@
+Press UP on the joystick.
+Press RIGHT on the joystick.
+Press UP on the d-pad.
+Press RIGHT on the d-pad.
+Press START (pause).
+Press SELECT (menu).
+Press A (interact).
+Press B (run).
+Press X (attack).
+Press Y (inventory).
+Press LEFT BUMPER.
+Press RIGHT BUMPER.
