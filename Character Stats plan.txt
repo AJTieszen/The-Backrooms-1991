@@ -1,0 +1,21 @@
+Strength		- 1-5 pts - peak build : football player
+Speed			- 1-5 pts - peak build : track star
+Sneak	/ Agility	- 1-5 pts - peak build : cheerleader, spy
+Intelligence	- 1-5 pts - peak build : nerd
+Carry / Pockets	- 1-5 pts - peak build : 
+
+Generic dude		- 3/3/3/3/3
+Generic chick		- 3/3/3/3/3
+Clown or Hobo		- 1/1/1/1/1 - challenge mode
+Nerd				- 1/3/3/5/3
+Football Player		- 5/4/2/2/2
+Cheerleader			- 2/4/5/2/1
+Agent				- 2/2/5/4/2
+Track star			- 2/5/3/2/1
+Fisherman			- 2/1/3/2/5
+(Special)			- Link --> Unlockable
+
+Unlockable:
+Explorer or Tryhard	- 5/5/5/5/5 - Easy mode (may need to find sthg to unlock)
+Stickman			- Custom	- cap @ 15 points
+Super Stickman		- Custom	- no cap

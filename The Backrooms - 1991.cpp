@@ -374,15 +374,15 @@ void Controls() {
     if (file.is_open()) {
         // Label buttons
         getline(file, line);
-        drawText(16, 16, line);
+        drawText(16, 16, line, sf::Color::White);
         getline(file, line);
-        drawText(112, 16, line);
+        drawText(112, 16, line, sf::Color::White);
         getline(file, line);
-        drawText(192, 16, line);
+        drawText(192, 16, line, sf::Color::White);
         getline(file, line);
-        drawText(128, 160, line);
+        drawText(128, 160, line, sf::Color::White);
         getline(file, line);
-        drawText(208, 160, line);
+        drawText(208, 160, line, sf::Color::White);
 
         // Options
         getline(file, line);
