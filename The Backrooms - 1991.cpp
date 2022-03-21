@@ -36,6 +36,7 @@ sf::Texture font;
 sf::Texture titleScreen;
 sf::Texture menu;
 sf::Texture controls;
+sf::Texture settings;
 
 // Engine functions
 void drawTilemapScreen(sf::Texture, int layer);
@@ -55,6 +56,7 @@ void drawHighlightBox(int x, int y, int width);
 void TitleScreen();
 void MainMenu();
 void Controls();
+void GfxSettings();
 
 // Screen Effects
 
@@ -78,7 +80,8 @@ int main() {
         if(!font.loadFromFile("Tiles/Font.png")) throw("Unable to load font tileset.");
         if(!titleScreen.loadFromFile("Tiles/Title Screen.png")) throw("Unable to load title screen tileset.");
         if(!menu.loadFromFile("Tiles/Menu.png")) throw("Unable to load font tileset.");
-        if(!controls.loadFromFile("Tiles/Controls.png")) throw("Unable to load controls graphics.");
+        if (!controls.loadFromFile("Tiles/Controls.png")) throw("Unable to load controls tileset.");
+        if (!settings.loadFromFile("Tiles/Settings.png")) throw("Unable to load settings tileset.");
 
         if(showDebugInfo) cout << "done.";
     }
@@ -110,10 +113,18 @@ int main() {
         readInput();
 
         switch(screen) {
+            // Main menu
         case 0: TitleScreen(); break;
         case 1: MainMenu(); break;
+            // Game setup
+            
+            // Gameplay
+            
+            // Controls
         case -1: Controls(); break;
         case -2: MapControls(); break;
+            // Settings
+        case -10: GfxSettings(); break;
 
         default:
             buffer.clear(sf::Color::Blue);
@@ -181,32 +192,32 @@ void loadTilemap(string filename, int layer) {
 
     ifstream file(filename);
 
-    if(file.is_open()) {
+    if (file.is_open()) {
         // get tilemap width
         getline(file, line, ' ');
-        if(line != "tileswide") cout << "\nWarning: Unexpected tilemap format.";
+        if (line != "tileswide") cout << "\nWarning: Unexpected tilemap format.";
         getline(file, line);
         columns = stoi(line);
 
         // get tilemap height
         getline(file, line, ' ');
-        if(line != "tileshigh") cout << "\nWarning: Unexpected tilemap format.";
+        if (line != "tileshigh") cout << "\nWarning: Unexpected tilemap format.";
         getline(file, line);
         rows = stoi(line);
 
         // Skip over extra lines
-        while(getline(file, line) && line != "layer 0");
+        while (getline(file, line) && line != "layer 0");
 
         // Read tile ID's
-        for(int y = 0; y < rows; y++) {
-            for(int x = 0; x < columns; x++) {
+        for (int y = 0; y < rows; y++) {
+            for (int x = 0; x < columns; x++) {
                 getline(file, line, ',');
                 tilemap[layer][x][y] = stoi(line);
             }
         }
 
     }
-    else throw("Unable to open tilemap.");
+    else cout << "\nUnable to open tilemap: " << filename;
 }
 void readInput() {
     // Reset from last frame
@@ -479,7 +490,9 @@ void MainMenu() {
             loadTilemap("Tiles/Controls.txt", 0);
             loadTilemap("Tiles/Controls Menu.txt", 1);
             break;
-        case 2: screen = -10;
+        case 2: 
+            screen = -10;
+            loadTilemap("Tiles/Graphics Settings.txt", 0);
             break;
         case 3: window.close();
         }
@@ -549,5 +562,17 @@ void Controls() {
     if (keysPressed[rt] && inputTimer == 0 && selection < 1) {
         selection++;
         inputTimer = 150;
+    }
+}
+void GfxSettings() {
+    drawTilemapScreen(settings, 0);
+
+    string line;
+    ifstream file("Text/Graphics Settings.txt");
+    if (file.is_open()) {
+        for (int i = 0; i < 5; i++) {
+            getline(file, line);
+            drawText(40, (i + 1) * 32, line, sf::Color::White);
+        }
     }
 }

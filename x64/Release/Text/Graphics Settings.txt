@@ -1,0 +1,5 @@
+Aspect Ratio:
+Scale Factor:
+Frame Rate:
+Scanlines:
+CRT Blur:
