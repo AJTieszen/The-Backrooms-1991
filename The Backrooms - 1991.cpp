@@ -13,8 +13,12 @@ using namespace std;
 const string title = "The Backrooms: 1991";
 bool showDebugInfo = true, toggleDebugInfo = false;
 int maxFrameRate = 60;
+
 enum keys { up, dn, lt, rt, start, select, a, b, x, y, lb, rb};
 int ctrlMap[12]; // jst y inv, jst x inv, dpad x inv, dpad y inv, start, select, a, b, x, y, lb, rb
+int scale = 200, aspectRatio = 1, frameRateIndex = 2;
+bool showScanlines, blur;
+const int stdFrameRate[] = { 0, 30, 60, 75, 120, 144, 240, 360, 0 }; // 0 = V-Sync
 
 // State data
 int screen, inputTimer, frameTime, selection = 0;
@@ -28,10 +32,12 @@ sf::Clock clk;
 sf::RenderTexture buffer;
 sf::RenderWindow window(sf::VideoMode(512, 448), title);
 sf::Sprite bufferObj;
+sf::Sprite scanlineObj;
 
 int tilemap[4][64][64];
 
 // Graphics assets
+sf::Texture scanlines;
 sf::Texture font;
 sf::Texture titleScreen;
 sf::Texture menu;
@@ -60,6 +66,8 @@ void GfxSettings();
 
 // Screen Effects
 
+
+
 int main() {
     // Print startup info to terminal
     cout << "Opening " << title << ". Press TAB to toggle debug information.\n";
@@ -75,15 +83,22 @@ int main() {
 
     // Load graphics
     {
-        if(showDebugInfo) cout << "\nLoading graphics...";
+        if (showDebugInfo) cout << "\nLoading graphics...";
 
-        if(!font.loadFromFile("Tiles/Font.png")) throw("Unable to load font tileset.");
-        if(!titleScreen.loadFromFile("Tiles/Title Screen.png")) throw("Unable to load title screen tileset.");
-        if(!menu.loadFromFile("Tiles/Menu.png")) throw("Unable to load font tileset.");
-        if (!controls.loadFromFile("Tiles/Controls.png")) throw("Unable to load controls tileset.");
-        if (!settings.loadFromFile("Tiles/Settings.png")) throw("Unable to load settings tileset.");
+        if (!scanlines.loadFromFile("Scanlines.png")) cout << "\nUnable to load scanline overlay";
+        scanlineObj.setTexture(scanlines);
+        scanlines.setSmooth(true);
 
-        if(showDebugInfo) cout << "done.";
+        if (!font.loadFromFile("Tiles/Font.png")) cout << "\nUnable to load font tileset.";
+        if (!titleScreen.loadFromFile("Tiles/Title Screen.png")) cout << "\nUnable to load title screen tileset.";
+        if (!menu.loadFromFile("Tiles/Menu.png")) cout << "\nUnable to load font tileset.";
+        if (!controls.loadFromFile("Tiles/Controls.png")) cout << "\nUnable to load controls tileset.";
+        if (!settings.loadFromFile("Tiles/Settings.png")) cout << "\nUnable to load settings tileset.";
+
+        loadTilemap("Tiles/Title Screen.txt", 0);
+        loadTilemap("Tiles/Main Menu.txt", 1);
+
+        if (showDebugInfo) cout << "done.";
     }
 
     loadTilemap("Tiles/Title Screen.txt", 0);
@@ -136,6 +151,7 @@ int main() {
         buffer.display();
         bufferObj.setTexture(buffer.getTexture());
         window.draw(bufferObj);
+        if (showScanlines) window.draw(scanlineObj);
         window.display();
         window.clear(sf::Color::Black);
     }
@@ -422,6 +438,7 @@ void loadControlMap() {
         cout << "Done.";
     }
 }
+
 int updateFrameTime() {
     sf::Time frametime = clk.getElapsedTime();
     clk.restart();
@@ -490,24 +507,25 @@ void MainMenu() {
             loadTilemap("Tiles/Controls.txt", 0);
             loadTilemap("Tiles/Controls Menu.txt", 1);
             break;
-        case 2: 
+        case 2:
             screen = -10;
             loadTilemap("Tiles/Graphics Settings.txt", 0);
+            loadTilemap("Tiles/Graphics Settings Bottom.txt", 1);
             break;
         case 3: window.close();
         }
         inputTimer = 250;
         selection = 0;
     }
-    if(keysPressed[up] && inputTimer == 0) { // Move selection down
+    if (keysPressed[up] && inputTimer == 0) { // Move selection down
         selection--;
-        if(selection < 0) selection = 3;
-        inputTimer = 150;
+        if (selection < 0) selection = 3;
+        inputTimer = 200;
     }
-    if(keysPressed[dn] && inputTimer == 0) { // Move selection up
+    if (keysPressed[dn] && inputTimer == 0) { // Move selection up
         selection++;
-        if(selection > 3) selection = 0;
-        inputTimer = 150;
+        if (selection > 3) selection = 0;
+        inputTimer = 200;
     }
 }
 void Controls() {
@@ -557,22 +575,124 @@ void Controls() {
     }
     if (keysPressed[lt] && inputTimer == 0 && selection > 0) {
         selection--;
-        inputTimer = 150;
+        inputTimer = 200;
     }
     if (keysPressed[rt] && inputTimer == 0 && selection < 1) {
         selection++;
-        inputTimer = 150;
+        inputTimer = 200;
     }
 }
 void GfxSettings() {
     drawTilemapScreen(settings, 0);
+    drawTilemapScreen(menu, 1);
+    int xSize = 256, ySize = 224;
 
-    string line;
+    string line, vsync;
     ifstream file("Text/Graphics Settings.txt");
     if (file.is_open()) {
         for (int i = 0; i < 5; i++) {
             getline(file, line);
             drawText(40, (i + 1) * 32, line, sf::Color::White);
         }
+        getline(file, line);
+        drawText(32, 192, line);
+        getline(file, line);
+        drawText(176, 192, line);
+        getline(file, vsync);
     }
+
+    drawText(160, 64, to_string(scale) + "%", sf::Color::White);
+    if (maxFrameRate == 0) drawText(160, 96, vsync, sf::Color::Green);
+    else drawText(160, 96, to_string(maxFrameRate) + " FPS", sf::Color::White);
+
+    cout << "\n" << selection;
+
+    if (keysPressed[up] && inputTimer == 0) {
+        selection--;
+        inputTimer = 200;
+    }
+    if (keysPressed[dn] && inputTimer == 0) {
+        selection++;
+        inputTimer = 200;
+    }
+
+    switch (selection) {
+    case 0: // Aspect Ratio
+        if (keysPressed[lt] && inputTimer == 0) {
+            aspectRatio--;
+            if (aspectRatio < 0) aspectRatio = 2;
+            inputTimer = 200;
+        }
+        if ((keysPressed[rt] || keysPressed[a]) && inputTimer == 0) {
+            aspectRatio++;
+            if (aspectRatio > 2) aspectRatio = 0;
+            inputTimer = 200;
+        }
+
+        ySize = 224 * scale / 100;
+
+        if (aspectRatio == 0) xSize = 256 * scale / 100;
+        if (aspectRatio == 1) xSize = ySize * 4 / 3;
+        if (aspectRatio == 2) xSize = ySize * 16 / 9;
+
+        window.setSize(sf::Vector2u(xSize, ySize));
+        break;
+
+    case 1: // Scale
+        if (keysPressed[lt] && inputTimer == 0 && scale > 50) {
+            scale -= 25;
+            inputTimer = 200;
+        }
+        if (keysPressed[rt] && inputTimer == 0) {
+            scale += 25;
+            inputTimer = 200;
+        }
+
+        if (scale < 100) blur = true;
+        if (scale < 200) showScanlines = false;
+
+        ySize = 224 * scale / 100;
+
+        if (aspectRatio == 0) xSize = 256 * scale / 100;
+        if (aspectRatio == 1) xSize = ySize * 4 / 3;
+        if (aspectRatio == 2) xSize = ySize * 16 / 9;
+
+        window.setSize(sf::Vector2u(xSize, ySize));
+        break;
+
+    case 2: // Frame Rate
+        if (keysPressed[lt] && inputTimer == 0 && frameRateIndex > 0) {
+            frameRateIndex--;
+            inputTimer = 200;
+        }
+        if (keysPressed[rt] && inputTimer == 0 && frameRateIndex < sizeof(stdFrameRate) / sizeof(stdFrameRate[0] - 1)) {
+            frameRateIndex++;
+            inputTimer = 200;
+        }
+
+        maxFrameRate = stdFrameRate[frameRateIndex];
+        window.setFramerateLimit(maxFrameRate);
+        window.setVerticalSyncEnabled(maxFrameRate == 0); // Enable V-Sync if frame rate is uncapped
+        break;
+
+    case 3: // Scanlines
+        if ((keysPressed[rt] || keysPressed[lt] || keysPressed[a]) && inputTimer == 0) {
+            showScanlines = !showScanlines;
+            inputTimer = 200;
+        }
+        break;
+
+    case 4: // Blur
+        if ((keysPressed[rt] || keysPressed[lt] || keysPressed[a]) && inputTimer == 0) {
+            blur = !blur;
+            if (blur) showScanlines = true;
+            inputTimer = 200;
+        }
+        break;
+
+    case 5: // Save settings
+        break;
+    }
+
+    buffer.setSmooth(blur);
 }
