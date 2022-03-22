@@ -16,7 +16,7 @@ int maxFrameRate = 60;
 
 enum keys { up, dn, lt, rt, start, select, a, b, x, y, lb, rb};
 int ctrlMap[12]; // jst y inv, jst x inv, dpad x inv, dpad y inv, start, select, a, b, x, y, lb, rb
-int scale = 200, aspectRatio = 1, frameRateIndex = 2;
+int scale = 200, aspectRatio = 0, frameRateIndex = 2;
 bool showScanlines, blur;
 const int stdFrameRate[] = { 0, 30, 60, 75, 120, 144, 240, 360, 0 }; // 0 = V-Sync
 
@@ -376,6 +376,8 @@ void MapControls() {
     case 12:
         screen++;
         saveControlMap();
+        selection = 1;
+        inputTimer = 200;
         break;
 
         // Button inputs
@@ -473,7 +475,7 @@ void drawHighlightBox(int x, int y, int width) {
 void TitleScreen() {
     drawTilemapScreen(titleScreen, 0);
 
-    if(keysPressed[start] || keysPressed[a]) {
+    if((keysPressed[start] || keysPressed[a]) && inputTimer == 0) {
         screen++;
         inputTimer = 250;
     }
@@ -560,12 +562,14 @@ void Controls() {
     // Menu Functionality
     if ((keysPressed[a] || keysPressed[start]) && inputTimer == 0) {
         switch (selection) {
-        case 0:
+        case 0: // Map controller
             screen--;
             mappedButtons = 0;
             break;
-        case 1:
+        case 1: // Return to main menu
             screen = 0;
+            selection = 0;
+            inputTimer = 200;
             loadTilemap("Tiles/Title Screen.txt", 0);
             loadTilemap("Tiles/Main Menu.txt", 1);
             break;
@@ -583,11 +587,12 @@ void Controls() {
     }
 }
 void GfxSettings() {
+    int xSize = 256, ySize = 224;
+    string line, vsync;
+
+    // Draw menu
     drawTilemapScreen(settings, 0);
     drawTilemapScreen(menu, 1);
-    int xSize = 256, ySize = 224;
-
-    string line, vsync;
     ifstream file("Text/Graphics Settings.txt");
     if (file.is_open()) {
         for (int i = 0; i < 5; i++) {
@@ -600,13 +605,13 @@ void GfxSettings() {
         drawText(176, 192, line);
         getline(file, vsync);
     }
-
+    
+    // Text values
     drawText(160, 64, to_string(scale) + "%", sf::Color::White);
     if (maxFrameRate == 0) drawText(160, 96, vsync, sf::Color::Green);
     else drawText(160, 96, to_string(maxFrameRate) + " FPS", sf::Color::White);
 
-    cout << "\n" << selection;
-
+    // Change Settings
     if (keysPressed[up] && inputTimer == 0) {
         selection--;
         inputTimer = 200;
@@ -615,8 +620,16 @@ void GfxSettings() {
         selection++;
         inputTimer = 200;
     }
-
+    if (keysPressed[rt] && selection == 5 && inputTimer == 0) {
+        selection++;
+        inputTimer = 200;
+    }
+    if (keysPressed[lt] && selection == 6 && inputTimer == 0) {
+        selection--;
+        inputTimer = 200;
+    }
     switch (selection) {
+    case -1: selection = 6; break;
     case 0: // Aspect Ratio
         if (keysPressed[lt] && inputTimer == 0) {
             aspectRatio--;
@@ -692,7 +705,38 @@ void GfxSettings() {
 
     case 5: // Save settings
         break;
-    }
 
+    case 6: // Return to main menu
+        if ((keysPressed[a] || keysPressed[start]) && inputTimer == 0) {
+            screen = 0;
+            selection = 0;
+            inputTimer = 200;
+            loadTilemap("Tiles/Title Screen.txt", 0);
+            loadTilemap("Tiles/Main Menu.txt", 1);
+        }
+        break;
+    case 7: selection = 0;
+    }
     buffer.setSmooth(blur);
+
+    // Indicate selected options
+    {
+        if (selection < 6) drawHighlightBox(0, 1 + 2 * selection, 15 - 6 * (selection == 5));
+        else drawHighlightBox(9, 11, 6);
+
+        sf::RectangleShape rect(sf::Vector2f(20.f, 20.f));
+        rect.setPosition(158 + 32 * aspectRatio, 30);
+        rect.setOutlineColor(sf::Color::White);
+        rect.setFillColor(sf::Color(0, 0, 0, 0));
+        rect.setOutlineThickness(1);
+        buffer.draw(rect);
+
+        sf::Sprite toggle;
+        toggle.setTexture(settings);
+        toggle.setTextureRect(sf::IntRect(176, 0, 16, 16));
+        toggle.setPosition(160.f + 14 * showScanlines, 128);
+        buffer.draw(toggle);
+        toggle.setPosition(160.f + 14 * blur, 160);
+        buffer.draw(toggle);
+    }
 }
