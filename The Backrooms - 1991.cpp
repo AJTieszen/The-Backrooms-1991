@@ -1,5 +1,4 @@
 // The Backrooms - 1991.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
 
 #include <iostream>
 #include <fstream>
@@ -15,7 +14,8 @@ bool showDebugInfo = true, toggleDebugInfo = false;
 int maxFrameRate = 60;
 
 enum keys { up, dn, lt, rt, start, select, a, b, x, y, lb, rb};
-int ctrlMap[12]; // jst y inv, jst x inv, dpad x inv, dpad y inv, start, select, a, b, x, y, lb, rb
+int ctrlMap[] = {-1, -1, 1, -1, 7, 6, 0, 1, 2, 3, 4, 5}; // jst y inv, jst x inv, dpad x inv, dpad y inv, start, select, a, b, x, y, lb, rb
+
 int scale = 200, aspectRatio = 0, frameRateIndex = 2;
 bool showScanlines, blur;
 const int stdFrameRate[] = { 0, 30, 60, 75, 120, 144, 240, 360, 0 }; // 0 = V-Sync
