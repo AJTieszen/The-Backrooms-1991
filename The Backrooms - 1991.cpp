@@ -374,10 +374,12 @@ void MapControls() {
         if (sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovX) > 50.f) {
             ctrlMap[3] = -1;
             mappedButtons++;
+            inputTimer = 200;
         }
         if (sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovX) < -50.f) {
             ctrlMap[3] = 1;
             mappedButtons++;
+            inputTimer = 200;
         }
         break;
 
