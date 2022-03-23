@@ -1,0 +1,8 @@
+Aspect Ratio:
+Scale Factor:
+Frame Rate:
+Scanlines:
+CRT Blur:
+Save Defaults
+Return
+V-Sync
