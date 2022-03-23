@@ -13,15 +13,15 @@ const string title = "The Backrooms: 1991";
 bool showDebugInfo = true, toggleDebugInfo = false;
 int maxFrameRate = 60;
 
-enum keys { up, dn, lt, rt, start, select, a, b, x, y, lb, rb};
-int ctrlMap[] = {-1, -1, 1, -1, 7, 6, 0, 1, 2, 3, 4, 5}; // jst y inv, jst x inv, dpad x inv, dpad y inv, start, select, a, b, x, y, lb, rb
+enum keys { up, dn, lt, rt, start, slct, a, b, x, y, lb, rb};
+int ctrlMap[] = {-1, -1, 1, -1, 7, 6, 0, 1, 2, 3, 4, 5}; // jst y inv, jst x inv, dpad x inv, dpad y inv, start, slct, a, b, x, y, lb, rb
 
 int scale = 200, aspectRatio = 0, frameRateIndex = 2;
 bool showScanlines, blur;
 const int stdFrameRate[] = { 0, 30, 60, 75, 120, 144, 240, 360, 0 }; // 0 = V-Sync
 
 // State data
-int screen, inputTimer, frameTime, selection = 0;
+int screen, inputTimer, frameTime, slction = 0;
 bool keysPressed[12]; // up, dn, lt, rt, start, select, a, b, x, y, lb, rb
 
 // Game state
@@ -280,7 +280,7 @@ void readInput() {
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Enter))
             keysPressed[start] = true;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Escape))
-            keysPressed[select] = true;
+            keysPressed[slct] = true;
     }
 
     // Controller
@@ -298,8 +298,8 @@ void readInput() {
             keysPressed[lb] = true;
         if(sf::Joystick::isButtonPressed(0, ctrlMap[rb]))
             keysPressed[rb] = true;
-        if(sf::Joystick::isButtonPressed(0, ctrlMap[select]))
-            keysPressed[select] = true;
+        if(sf::Joystick::isButtonPressed(0, ctrlMap[slct]))
+            keysPressed[slct] = true;
         if(sf::Joystick::isButtonPressed(0, ctrlMap[start]))
             keysPressed[start] = true;
 
@@ -385,7 +385,7 @@ void MapControls() {
     case 12:
         screen++;
         saveControlMap();
-        selection = 1;
+        slction = 1;
         inputTimer = 200;
         break;
 
@@ -562,11 +562,11 @@ void MainMenu() {
     }
 
     // Menu Visuals
-    drawHighlightBox(4, 3 + selection * 2, 7);
+    drawHighlightBox(4, 3 + slction * 2, 7);
 
     // Menu functionality
-    if ((keysPressed[a] || keysPressed[start]) && inputTimer == 0) { // Select option
-        switch (selection) {
+    if ((keysPressed[a] || keysPressed[start]) && inputTimer == 0) { // slct option
+        switch (slction) {
         case 0: screen++;
             break;
         case 1:
@@ -582,16 +582,16 @@ void MainMenu() {
         case 3: window.close();
         }
         inputTimer = 250;
-        selection = 0;
+        slction = 0;
     }
-    if (keysPressed[up] && inputTimer == 0) { // Move selection down
-        selection--;
-        if (selection < 0) selection = 3;
+    if (keysPressed[up] && inputTimer == 0) { // Move slction down
+        slction--;
+        if (slction < 0) slction = 3;
         inputTimer = 200;
     }
-    if (keysPressed[dn] && inputTimer == 0) { // Move selection up
-        selection++;
-        if (selection > 3) selection = 0;
+    if (keysPressed[dn] && inputTimer == 0) { // Move slction up
+        slction++;
+        if (slction > 3) slction = 0;
         inputTimer = 200;
     }
 }
@@ -624,32 +624,32 @@ void Controls() {
     }
 
     //menu display
-    drawHighlightBox(selection * 9, 11, 9 - selection * 3);
+    drawHighlightBox(slction * 9, 11, 9 - slction * 3);
 
     // Menu Functionality
     if ((keysPressed[a] || keysPressed[start]) && inputTimer == 0) {
-        switch (selection) {
+        switch (slction) {
         case 0: // Map controller
             screen--;
             mappedButtons = 0;
             break;
         case 1: // Return to main menu
             screen = 0;
-            selection = 0;
+            slction = 0;
             inputTimer = 200;
             loadTilemap("Tiles/Title Screen.txt", 0);
             loadTilemap("Tiles/Main Menu.txt", 1);
             break;
         }
 
-        selection = 0;
+        slction = 0;
     }
-    if (keysPressed[lt] && inputTimer == 0 && selection > 0) {
-        selection--;
+    if (keysPressed[lt] && inputTimer == 0 && slction > 0) {
+        slction--;
         inputTimer = 200;
     }
-    if (keysPressed[rt] && inputTimer == 0 && selection < 1) {
-        selection++;
+    if (keysPressed[rt] && inputTimer == 0 && slction < 1) {
+        slction++;
         inputTimer = 200;
     }
 }
@@ -682,23 +682,23 @@ void GfxSettings() {
 
     // Change Settings
     if (keysPressed[up] && inputTimer == 0) {
-        selection--;
+        slction--;
         inputTimer = 200;
     }
     if (keysPressed[dn] && inputTimer == 0) {
-        selection++;
+        slction++;
         inputTimer = 200;
     }
-    if (keysPressed[rt] && selection == 5 && inputTimer == 0) {
-        selection++;
+    if (keysPressed[rt] && slction == 5 && inputTimer == 0) {
+        slction++;
         inputTimer = 200;
     }
-    if (keysPressed[lt] && selection == 6 && inputTimer == 0) {
-        selection--;
+    if (keysPressed[lt] && slction == 6 && inputTimer == 0) {
+        slction--;
         inputTimer = 200;
     }
-    switch (selection) {
-    case -1: selection = 6; break;
+    switch (slction) {
+    case -1: slction = 6; break;
     case 0: // Aspect Ratio
         if (keysPressed[lt] && inputTimer == 0) {
             aspectRatio--;
@@ -782,19 +782,19 @@ void GfxSettings() {
     case 6: // Return to main menu
         if ((keysPressed[a] || keysPressed[start]) && inputTimer == 0) {
             screen = 0;
-            selection = 0;
+            slction = 0;
             inputTimer = 200;
             loadTilemap("Tiles/Title Screen.txt", 0);
             loadTilemap("Tiles/Main Menu.txt", 1);
         }
         break;
-    case 7: selection = 0;
+    case 7: slction = 0;
     }
     buffer.setSmooth(blur);
 
-    // Indicate selected options
+    // Indicate slcted options
     {
-        if (selection < 6) drawHighlightBox(0, 1 + 2 * selection, 15 - 6 * (selection == 5));
+        if (slction < 6) drawHighlightBox(0, 1 + 2 * slction, 15 - 6 * (slction == 5));
         else drawHighlightBox(9, 11, 6);
 
         sf::RectangleShape rect(sf::Vector2f(20.f, 20.f));
