@@ -50,10 +50,13 @@ void drawText(int x, int y, string text, sf::Color color);
 void drawText(int x, int y, string text);
 void loadTilemap(string filename, int layer);
 void readInput();
-int updateFrameTime();
 void MapControls();
 void saveControlMap();
 void loadControlMap();
+void saveGfxSettings();
+void loadGfxSettings();
+
+int updateFrameTime();
 
 // Game Functions
 void drawHighlightBox(int x, int y, int width);
@@ -106,6 +109,7 @@ int main() {
 
     // Load controls
     loadControlMap();
+    loadGfxSettings();
 
     while(window.isOpen()) {
         // System window management
@@ -155,6 +159,8 @@ int main() {
         window.display();
         window.clear(sf::Color::Black);
     }
+
+    cout << "\n\n\nThank you for playing!\n\n\n";
 }
 
 
@@ -232,6 +238,7 @@ void loadTilemap(string filename, int layer) {
             }
         }
 
+        file.close();
     }
     else cout << "\nUnable to open tilemap: " << filename;
 }
@@ -323,6 +330,8 @@ void MapControls() {
     if (file.is_open()) {
         for (int i = 0; i <= mappedButtons; i++) getline(file, line);
         drawText(128 - 4 * (int)line.length(), 16, line, sf::Color::White);
+
+        file.close();
     }
 
     switch (mappedButtons) {
@@ -393,9 +402,7 @@ void MapControls() {
     }
 }
 void saveControlMap() {
-    if (showDebugInfo) {
-        cout << "\nWriting control map...";
-    }
+    if (showDebugInfo) cout << "\nSaving control map...";
 
     ofstream file;
     file.open("Controls.dat", ios::out);
@@ -409,25 +416,24 @@ void saveControlMap() {
     }
 
     file.close();
+    if (showDebugInfo) cout << "done.";
 }
 void loadControlMap() {
-    if (showDebugInfo) {
-        cout << "\nReading control map...";
-    }
+    if (showDebugInfo) cout << "\nReading control map...";
 
-    ifstream file ("controls.dat");
+    ifstream file ("Controls.dat");
     string line;
 
     if (file.is_open()) {
         getline(file, line);
-        if (line != "Axis inversion:") cout << "\nWarining: controller map may not be formatted correctly.";
+        if (line != "Axis inversion:") cout << "\nWarining: controller map may not be formatted correctly (section 1).";
         for (int i = 0; i < 4; i++) {
             getline(file, line);
             ctrlMap[i] = stoi(line);
         }
 
         getline(file, line);
-        if (line != "Button ID's:") cout << "\nWarining: controller map may not be formatted correctly.";
+        if (line != "Button ID's:") cout << "\nWarining: controller map may not be formatted correctly (section 2).";
         for (int i = 4; i < sizeof(ctrlMap) / sizeof(ctrlMap[i]); i++) {
             getline(file, line);
             ctrlMap[i] = stoi(line);
@@ -436,9 +442,66 @@ void loadControlMap() {
         file.close();
     }
 
-    if (showDebugInfo) {
-        cout << "Done.";
+    if (showDebugInfo) cout << "Done.";
+}
+void saveGfxSettings() {
+    if (showDebugInfo) cout << "\nSaving graphics settings...";
+
+    ofstream file;
+    file.open("Graphics.dat", ios::out);
+    file << "Aspect_Ratio: " << aspectRatio;
+    file << "\nScale_Factor: " << scale;
+    file << "\nFrame_Rate: " << maxFrameRate;
+    file << "\nScanlines: " << showScanlines;
+    file << "\nCRT_Blur: " << blur;
+
+    if (showDebugInfo) cout << "done.";
+}
+void loadGfxSettings() {
+    if (showDebugInfo) cout << "\nReading graphics settings...";
+    string line;
+    string expectedLabels[] = { "Aspect_Ratio:", "Scale_Factor:", "Frame_Rate:", "Scanlines:", "CRT_Blur:" };
+    int xSize = 256, ySize = 224;
+    int values[5];
+
+    // Parse file
+    ifstream file("Graphics.dat");
+    if (file.is_open()) {
+        for (int i = 0; i < 5; i++) {
+            getline(file, line, ' ');
+            if (line != expectedLabels[i]) cout << "\nWarining: graphics settings may not be formatted correctly (line " << i + 1 << ").";
+            getline(file, line);
+            values[i] = stoi(line);
+        }
+
+        aspectRatio = values[0];
+        scale = values[1];
+        maxFrameRate = values[2];
+        showScanlines = values[3];
+        blur = values[4];
+
+        for (int i = 0; i < sizeof(stdFrameRate) / sizeof(int); i++) {
+            if (stdFrameRate[i] == maxFrameRate) frameRateIndex = i;
+        }
+
+        file.close();
     }
+
+
+    // Apply settings
+    ySize = 224 * scale / 100;
+
+    if (aspectRatio == 0) xSize = 256 * scale / 100;
+    if (aspectRatio == 1) xSize = ySize * 4 / 3;
+    if (aspectRatio == 2) xSize = ySize * 16 / 9;
+
+    window.setSize(sf::Vector2u(xSize, ySize));
+    buffer.setSmooth(blur);
+
+    window.setFramerateLimit(maxFrameRate);
+    window.setVerticalSyncEnabled(maxFrameRate == 0); // Enable V-Sync if frame rate is uncapped
+
+    if (showDebugInfo) cout << "Done.";
 }
 
 int updateFrameTime() {
@@ -494,6 +557,8 @@ void MainMenu() {
             getline(file, line);
             drawText(100, 32 * i + 64, line);
         }
+
+        file.close();
     }
 
     // Menu Visuals
@@ -554,6 +619,8 @@ void Controls() {
         drawText(32, 192, line);
         getline(file, line);
         drawText(175, 192, line);
+
+        file.close();
     }
 
     //menu display
@@ -604,6 +671,8 @@ void GfxSettings() {
         getline(file, line);
         drawText(176, 192, line);
         getline(file, vsync);
+
+        file.close();
     }
     
     // Text values
@@ -704,6 +773,10 @@ void GfxSettings() {
         break;
 
     case 5: // Save settings
+        if ((keysPressed[a] || keysPressed[start]) && inputTimer == 0) {
+            saveGfxSettings();
+            inputTimer = 200;
+        }
         break;
 
     case 6: // Return to main menu
@@ -725,7 +798,7 @@ void GfxSettings() {
         else drawHighlightBox(9, 11, 6);
 
         sf::RectangleShape rect(sf::Vector2f(20.f, 20.f));
-        rect.setPosition(158 + 32 * aspectRatio, 30);
+        rect.setPosition(158.f + 32 * aspectRatio, 30.f);
         rect.setOutlineColor(sf::Color::White);
         rect.setFillColor(sf::Color(0, 0, 0, 0));
         rect.setOutlineThickness(1);
