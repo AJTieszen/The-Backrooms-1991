@@ -12,8 +12,9 @@ using namespace std;
 const string title = "The Backrooms: 1991";
 bool showDebugInfo = true, toggleDebugInfo = false;
 int maxFrameRate = 60;
+const int solidWallId = 1;
 
-enum keys { up, dn, lt, rt, start, slct, a, b, x, y, lb, rb};
+const enum keys { up, dn, lt, rt, start, slct, a, b, x, y, lb, rb};
 int ctrlMap[] = {-1, -1, 1, -1, 7, 6, 0, 1, 2, 3, 4, 5}; // jst y inv, jst x inv, dpad x inv, dpad y inv, start, slct, a, b, x, y, lb, rb
 
 int scale = 200, aspectRatio = 0, frameRateIndex = 2;
@@ -45,10 +46,12 @@ sf::Texture controls;
 sf::Texture settings;
 
 // Engine functions
-void drawTilemapScreen(sf::Texture, int layer);
+void drawTilemapStatic(sf::Texture, int layer);
+void drawTilemapStatic(sf::Texture);
 void drawText(int x, int y, string text, sf::Color color);
 void drawText(int x, int y, string text);
 void loadTilemap(string filename, int layer);
+void loadTilemap(string filename);
 void readInput();
 void MapControls();
 void saveControlMap();
@@ -98,13 +101,13 @@ int main() {
         if (!controls.loadFromFile("Tiles/Controls.png")) cout << "\nUnable to load controls tileset.";
         if (!settings.loadFromFile("Tiles/Settings.png")) cout << "\nUnable to load settings tileset.";
 
-        loadTilemap("Tiles/Title Screen.txt", 0);
+        loadTilemap("Tiles/Title Screen.txt");
         loadTilemap("Tiles/Main Menu.txt", 1);
 
         if (showDebugInfo) cout << "done.";
     }
 
-    loadTilemap("Tiles/Title Screen.txt", 0);
+    loadTilemap("Tiles/Title Screen.txt");
     loadTilemap("Tiles/Main Menu.txt", 1);
 
     // Load controls
@@ -166,7 +169,7 @@ int main() {
 
 
 // Engine functions
-void drawTilemapScreen(sf::Texture tex, int layer) {
+void drawTilemapStatic(sf::Texture tex, int layer) {
     sf::Sprite tile;
     tile.setTexture(tex);
     int tileID, tileX, tileY;
@@ -184,6 +187,9 @@ void drawTilemapScreen(sf::Texture tex, int layer) {
             buffer.draw(tile);
         }
     }
+}
+void drawTilemapStatic(sf::Texture tex) {
+    drawTilemapStatic(tex, 0);
 }
 void drawText(int x, int y, string txt, sf::Color color) {
     sf::Sprite text;
@@ -242,6 +248,10 @@ void loadTilemap(string filename, int layer) {
     }
     else cout << "\nUnable to open tilemap: " << filename;
 }
+void loadTilemap(string filename) {
+    loadTilemap(filename, 0);
+}
+
 void readInput() {
     // Reset from last frame
     for(int i = 0; i < sizeof(keysPressed) / sizeof(keysPressed[0]); i++) {
@@ -538,7 +548,7 @@ void drawHighlightBox(int x, int y, int width) {
 
 // Game Screens
 void TitleScreen() {
-    drawTilemapScreen(titleScreen, 0);
+    drawTilemapStatic(titleScreen);
 
     if((keysPressed[start] || keysPressed[a]) && inputTimer == 0) {
         screen++;
@@ -546,7 +556,7 @@ void TitleScreen() {
     }
 }
 void MainMenu() {
-    drawTilemapScreen(menu, 1);
+    drawTilemapStatic(menu, 1);
 
     // Load and display text
     string line;
@@ -573,12 +583,12 @@ void MainMenu() {
             break;
         case 1:
             screen = -1;
-            loadTilemap("Tiles/Controls.txt", 0);
+            loadTilemap("Tiles/Controls.txt");
             loadTilemap("Tiles/Controls Menu.txt", 1);
             break;
         case 2:
             screen = -10;
-            loadTilemap("Tiles/Graphics Settings.txt", 0);
+            loadTilemap("Tiles/Graphics Settings.txt");
             loadTilemap("Tiles/Graphics Settings Bottom.txt", 1);
             break;
         case 3: window.close();
@@ -598,8 +608,8 @@ void MainMenu() {
     }
 }
 void Controls() {
-    drawTilemapScreen(controls, 0);
-    drawTilemapScreen(menu, 1);
+    drawTilemapStatic(controls);
+    drawTilemapStatic(menu, 1);
 
     string line;
     ifstream file("Text/Controls.txt");
@@ -639,7 +649,7 @@ void Controls() {
             screen = 0;
             slction = 0;
             inputTimer = 200;
-            loadTilemap("Tiles/Title Screen.txt", 0);
+            loadTilemap("Tiles/Title Screen.txt");
             loadTilemap("Tiles/Main Menu.txt", 1);
             break;
         }
@@ -660,8 +670,8 @@ void GfxSettings() {
     string line, vsync;
 
     // Draw menu
-    drawTilemapScreen(settings, 0);
-    drawTilemapScreen(menu, 1);
+    drawTilemapStatic(settings);
+    drawTilemapStatic(menu, 1);
     ifstream file("Text/Graphics Settings.txt");
     if (file.is_open()) {
         for (int i = 0; i < 5; i++) {
@@ -786,7 +796,7 @@ void GfxSettings() {
             screen = 0;
             slction = 0;
             inputTimer = 200;
-            loadTilemap("Tiles/Title Screen.txt", 0);
+            loadTilemap("Tiles/Title Screen.txt");
             loadTilemap("Tiles/Main Menu.txt", 1);
         }
         break;
