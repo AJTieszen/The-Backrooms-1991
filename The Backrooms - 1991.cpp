@@ -115,7 +115,8 @@ int main() {
     }
 
     // Load controls
-    loadTilemap("Tiles/Scroll Test.txt");
+    loadControlMap();
+    loadGfxSettings();
 
     while(window.isOpen()) {
         // System window management
@@ -625,7 +626,9 @@ void MainMenu() {
     // Menu functionality
     if ((keysPressed[a] || keysPressed[start]) && inputTimer == 0) { // slct option
         switch (selection) {
-        case 0: screen++;
+        case 0:
+            screen++;
+            loadTilemap("Tiles/Scroll Test.txt");
             break;
         case 1:
             screen = -1;
