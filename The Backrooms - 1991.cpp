@@ -11,22 +11,22 @@ using namespace std;
 // Startup settings & defaults
 const string title = "The Backrooms: 1991";
 bool showDebugInfo = true, toggleDebugInfo = false;
-int maxFrameRate = 60;
 const int solidWallId = 1;
 
 const enum keys { up, dn, lt, rt, start, slct, a, b, x, y, lb, rb};
 int ctrlMap[] = {-1, -1, 1, -1, 7, 6, 0, 1, 2, 3, 4, 5}; // jst y inv, jst x inv, dpad x inv, dpad y inv, start, slct, a, b, x, y, lb, rb
 
-int scale = 200, aspectRatio = 0, frameRateIndex = 2;
+int scale = 200, aspectRatio = 0, maxFrameRate = 0, frameRateIndex = 0;
 bool showScanlines, blur;
 const int stdFrameRate[] = { 0, 30, 60, 75, 120, 144, 240, 360, 0 }; // 0 = V-Sync
 
 // State data
-int screen, inputTimer, frameTime, slction = 0;
+int screen, inputTimer, frameTime, selection = 0, mappedButtons = 0;
+float frameScl; // Normalize for 60 fps
 bool keysPressed[12]; // up, dn, lt, rt, start, select, a, b, x, y, lb, rb
 
-// Game state
-int mappedButtons = 0;
+// Game variables
+sf::Vector2f screenPos[4];
 
 // Global SFML & graphics objects
 sf::Clock clk;
@@ -45,13 +45,18 @@ sf::Texture menu;
 sf::Texture controls;
 sf::Texture settings;
 
+sf::Texture test;
+
 // Engine functions
-void drawTilemapStatic(sf::Texture, int layer);
-void drawTilemapStatic(sf::Texture);
+void drawTilemapStatic(sf::Texture tex, int layer);
+void drawTilemapStatic(sf::Texture tex);
+void drawTilemapScroll(sf::Texture tex, int layer);
+void drawTilemapScroll(sf::Texture tex);
 void drawText(int x, int y, string text, sf::Color color);
 void drawText(int x, int y, string text);
 void loadTilemap(string filename, int layer);
 void loadTilemap(string filename);
+
 void readInput();
 void MapControls();
 void saveControlMap();
@@ -59,7 +64,7 @@ void loadControlMap();
 void saveGfxSettings();
 void loadGfxSettings();
 
-int updateFrameTime();
+void updateFrameTime();
 
 // Game Functions
 void drawHighlightBox(int x, int y, int width);
@@ -101,14 +106,13 @@ int main() {
         if (!controls.loadFromFile("Tiles/Controls.png")) cout << "\nUnable to load controls tileset.";
         if (!settings.loadFromFile("Tiles/Settings.png")) cout << "\nUnable to load settings tileset.";
 
+        if (!test.loadFromFile("Tiles/Scroll Test.png")) cout << "\nUnable to load tileset.";
+
         loadTilemap("Tiles/Title Screen.txt");
         loadTilemap("Tiles/Main Menu.txt", 1);
 
         if (showDebugInfo) cout << "done.";
     }
-
-    loadTilemap("Tiles/Title Screen.txt");
-    loadTilemap("Tiles/Main Menu.txt", 1);
 
     // Load controls
     loadControlMap();
@@ -138,16 +142,37 @@ int main() {
             // Main menu
         case 0: TitleScreen(); break;
         case 1: MainMenu(); break;
+
             // Game setup
-            
+        case 2:
+            loadTilemap("Tiles/Scroll Test.txt");
+            drawTilemapScroll(test);
+
+            cout << "\n (" << to_string(screenPos[0].x) << ", " + to_string(screenPos[0].y) << ")";
+
+            if (keysPressed[up]) screenPos[0].y -= frameScl;
+            if (keysPressed[dn]) screenPos[0].y += frameScl;
+            if (keysPressed[lt]) screenPos[0].x -= frameScl;
+            if (keysPressed[rt]) screenPos[0].x += frameScl;
+
+            if (screenPos[0].x < 0) screenPos[0].x = 0.f;
+            if (screenPos[0].x > 256) screenPos[0].x = 256.f;
+            if (screenPos[0].y < 0) screenPos[0].y = 0.f;
+            if (screenPos[0].y > 256) screenPos[0].y = 256.f;
+
+            break;
+
             // Gameplay
             
             // Controls
+
         case -1: Controls(); break;
         case -2: MapControls(); break;
+
             // Settings
         case -10: GfxSettings(); break;
 
+            // Unrecognized game state
         default:
             buffer.clear(sf::Color::Blue);
             drawText(0, 0, "Error: unrecognized game state.", sf::Color::White);
@@ -190,6 +215,30 @@ void drawTilemapStatic(sf::Texture tex, int layer) {
 }
 void drawTilemapStatic(sf::Texture tex) {
     drawTilemapStatic(tex, 0);
+}
+void drawTilemapScroll(sf::Texture tex, int layer) {
+    sf::Sprite tile;
+    tile.setTexture(tex);
+    int tileID, tileX, tileY;
+    int dx = screenPos[layer].x, dy = screenPos[layer].y, dxt = dx / 16, dyt = dy / 16;
+
+    for (int x = dxt; x < 17 + dxt; x++) {
+        for (int y = dyt; y < 15 + dyt; y++) {
+            tileID = tilemap[layer][x][y];
+            tile.setPosition(16.f * x - dx, 16.f * y - dy);
+
+            tileX = (tileID % 16); tileX *= 16;
+            tileY = (tileID / 16); tileY *= 16;
+
+            tile.setTextureRect(sf::IntRect(tileX, tileY, 16, 16));
+
+            buffer.draw(tile);
+        }
+    }
+
+}
+void drawTilemapScroll(sf::Texture tex) {
+    drawTilemapScroll(tex, 0);
 }
 void drawText(int x, int y, string txt, sf::Color color) {
     sf::Sprite text;
@@ -259,7 +308,7 @@ void readInput() {
     }
 
     // Handle multi-frame input blocking
-    frameTime = updateFrameTime();
+    updateFrameTime();
     if(inputTimer > 0) {
         inputTimer -= frameTime;
     }
@@ -397,7 +446,7 @@ void MapControls() {
     case 12:
         screen++;
         saveControlMap();
-        slction = 1;
+        selection = 1;
         inputTimer = 200;
         break;
 
@@ -516,11 +565,12 @@ void loadGfxSettings() {
     if (showDebugInfo) cout << "Done.";
 }
 
-int updateFrameTime() {
+void updateFrameTime() {
     sf::Time frametime = clk.getElapsedTime();
     clk.restart();
 
-    return frametime.asMilliseconds();
+    frameTime = frametime.asMilliseconds();
+    frameScl = frameTime / 16.6667;
 }
 
 // Game Functions
@@ -574,11 +624,11 @@ void MainMenu() {
     }
 
     // Menu Visuals
-    drawHighlightBox(4, 3 + slction * 2, 7);
+    drawHighlightBox(4, 3 + selection * 2, 7);
 
     // Menu functionality
     if ((keysPressed[a] || keysPressed[start]) && inputTimer == 0) { // slct option
-        switch (slction) {
+        switch (selection) {
         case 0: screen++;
             break;
         case 1:
@@ -594,16 +644,16 @@ void MainMenu() {
         case 3: window.close();
         }
         inputTimer = 250;
-        slction = 0;
+        selection = 0;
     }
-    if (keysPressed[up] && inputTimer == 0) { // Move slction down
-        slction--;
-        if (slction < 0) slction = 3;
+    if (keysPressed[up] && inputTimer == 0) { // Move selection down
+        selection--;
+        if (selection < 0) selection = 3;
         inputTimer = 200;
     }
-    if (keysPressed[dn] && inputTimer == 0) { // Move slction up
-        slction++;
-        if (slction > 3) slction = 0;
+    if (keysPressed[dn] && inputTimer == 0) { // Move selection up
+        selection++;
+        if (selection > 3) selection = 0;
         inputTimer = 200;
     }
 }
@@ -636,32 +686,32 @@ void Controls() {
     }
 
     //menu display
-    drawHighlightBox(slction * 9, 11, 9 - slction * 3);
+    drawHighlightBox(selection * 9, 11, 9 - selection * 3);
 
     // Menu Functionality
     if ((keysPressed[a] || keysPressed[start]) && inputTimer == 0) {
-        switch (slction) {
+        switch (selection) {
         case 0: // Map controller
             screen--;
             mappedButtons = 0;
             break;
         case 1: // Return to main menu
             screen = 0;
-            slction = 0;
+            selection = 0;
             inputTimer = 200;
             loadTilemap("Tiles/Title Screen.txt");
             loadTilemap("Tiles/Main Menu.txt", 1);
             break;
         }
 
-        slction = 0;
+        selection = 0;
     }
-    if (keysPressed[lt] && inputTimer == 0 && slction > 0) {
-        slction--;
+    if (keysPressed[lt] && inputTimer == 0 && selection > 0) {
+        selection--;
         inputTimer = 200;
     }
-    if (keysPressed[rt] && inputTimer == 0 && slction < 1) {
-        slction++;
+    if (keysPressed[rt] && inputTimer == 0 && selection < 1) {
+        selection++;
         inputTimer = 200;
     }
 }
@@ -694,23 +744,23 @@ void GfxSettings() {
 
     // Change Settings
     if (keysPressed[up] && inputTimer == 0) {
-        slction--;
+        selection--;
         inputTimer = 200;
     }
     if (keysPressed[dn] && inputTimer == 0) {
-        slction++;
+        selection++;
         inputTimer = 200;
     }
-    if (keysPressed[rt] && slction == 5 && inputTimer == 0) {
-        slction++;
+    if (keysPressed[rt] && selection == 5 && inputTimer == 0) {
+        selection++;
         inputTimer = 200;
     }
-    if (keysPressed[lt] && slction == 6 && inputTimer == 0) {
-        slction--;
+    if (keysPressed[lt] && selection == 6 && inputTimer == 0) {
+        selection--;
         inputTimer = 200;
     }
-    switch (slction) {
-    case -1: slction = 6; break;
+    switch (selection) {
+    case -1: selection = 6; break;
     case 0: // Aspect Ratio
         if (keysPressed[lt] && inputTimer == 0) {
             aspectRatio--;
@@ -794,19 +844,19 @@ void GfxSettings() {
     case 6: // Return to main menu
         if ((keysPressed[a] || keysPressed[start]) && inputTimer == 0) {
             screen = 0;
-            slction = 0;
+            selection = 0;
             inputTimer = 200;
             loadTilemap("Tiles/Title Screen.txt");
             loadTilemap("Tiles/Main Menu.txt", 1);
         }
         break;
-    case 7: slction = 0;
+    case 7: selection = 0;
     }
     buffer.setSmooth(blur);
 
     // Indicate slcted options
     {
-        if (slction < 6) drawHighlightBox(0, 1 + 2 * slction, 15 - 6 * (slction == 5));
+        if (selection < 6) drawHighlightBox(0, 1 + 2 * selection, 15 - 6 * (selection == 5));
         else drawHighlightBox(9, 11, 6);
 
         sf::RectangleShape rect(sf::Vector2f(20.f, 20.f));
