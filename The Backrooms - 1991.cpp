@@ -115,8 +115,7 @@ int main() {
     }
 
     // Load controls
-    loadControlMap();
-    loadGfxSettings();
+    loadTilemap("Tiles/Scroll Test.txt");
 
     while(window.isOpen()) {
         // System window management
@@ -145,10 +144,7 @@ int main() {
 
             // Game setup
         case 2:
-            loadTilemap("Tiles/Scroll Test.txt");
             drawTilemapScroll(test);
-
-            cout << "\n (" << to_string(screenPos[0].x) << ", " + to_string(screenPos[0].y) << ")";
 
             if (keysPressed[up]) screenPos[0].y -= frameScl;
             if (keysPressed[dn]) screenPos[0].y += frameScl;
