@@ -106,7 +106,7 @@ int main() {
     {
         if (showDebugInfo) cout << "\nLoading graphics...";
 
-        if (!scanlines.loadFromFile("Scanlines.png")) cout << "\nUnable to load scanline overlay";
+        if (!scanlines.loadFromFile("Fullscreen Assets/Scanlines.png")) cout << "\nUnable to load scanline overlay";
         scanlineObj.setTexture(scanlines);
         scanlines.setSmooth(true);
 
@@ -572,16 +572,17 @@ void movePlayer(float speed, int layer) {
     const int strictness = 6;
     int gridPosX = playerPos.x / 16;
     int gridPosY = playerPos.y / 16;
+    bool clrUp, clrDn, clrLt, clrRt;
 
     // check if path is clear
     {
-        bool clrUp = (tilemap[layer][(int)(playerPos.x + strictness - 1) / 16][(int)(playerPos.y - strictness) / 16] < solidWallId)
+        clrUp = (tilemap[layer][(int)(playerPos.x + strictness - 1) / 16][(int)(playerPos.y - strictness) / 16] < solidWallId)
             && (tilemap[layer][(int)(playerPos.x - strictness + 1) / 16][(int)(playerPos.y - strictness) / 16] < solidWallId);
-        bool clrDn = (tilemap[layer][(int)(playerPos.x + strictness - 1) / 16][(int)(playerPos.y + strictness) / 16] < solidWallId)
+        clrDn = (tilemap[layer][(int)(playerPos.x + strictness - 1) / 16][(int)(playerPos.y + strictness) / 16] < solidWallId)
             && (tilemap[layer][(int)(playerPos.x - strictness + 1) / 16][(int)(playerPos.y + strictness) / 16] < solidWallId);
-        bool clrLt = (tilemap[layer][(int)(playerPos.x - strictness) / 16][(int)(playerPos.y + strictness - 1) / 16] < solidWallId)
+        clrLt = (tilemap[layer][(int)(playerPos.x - strictness) / 16][(int)(playerPos.y + strictness - 1) / 16] < solidWallId)
             && (tilemap[layer][(int)(playerPos.x - strictness) / 16][(int)(playerPos.y - strictness + 1) / 16] < solidWallId);
-        bool clrRt = (tilemap[layer][(int)(playerPos.x + strictness) / 16][(int)(playerPos.y + strictness - 1) / 16] < solidWallId)
+        clrRt = (tilemap[layer][(int)(playerPos.x + strictness) / 16][(int)(playerPos.y + strictness - 1) / 16] < solidWallId)
             && (tilemap[layer][(int)(playerPos.x + strictness) / 16][(int)(playerPos.y - strictness + 1) / 16] < solidWallId);
     }
 
@@ -593,17 +594,17 @@ void movePlayer(float speed, int layer) {
 
     // push character out of wall
     {
-        if ((tilemap[layer][(int)(playerPos.x + 8) / 16][(int)(playerPos.y - 8) / 16] >= solidWallId)
-            && (tilemap[layer][(int)(playerPos.x - 8) / 16][(int)(playerPos.y - 8) / 16] >= solidWallId))
+        if ((tilemap[layer][(int)(playerPos.x + strictness) / 16][(int)(playerPos.y - 8) / 16] >= solidWallId)
+            || (tilemap[layer][(int)(playerPos.x - strictness) / 16][(int)(playerPos.y - 8) / 16] >= solidWallId))
             playerPos.y = gridPosY * 16 + 8;
-        if ((tilemap[layer][(int)(playerPos.x + 8) / 16][(int)(playerPos.y + 8) / 16] >= solidWallId)
-            && (tilemap[layer][(int)(playerPos.x - 8) / 16][(int)(playerPos.y + 8) / 16] >= solidWallId))
+        if ((tilemap[layer][(int)(playerPos.x + strictness) / 16][(int)(playerPos.y + 8) / 16] >= solidWallId)
+            || (tilemap[layer][(int)(playerPos.x - strictness) / 16][(int)(playerPos.y + 8) / 16] >= solidWallId))
             playerPos.y = gridPosY * 16 + 8;
-        if ((tilemap[layer][(int)(playerPos.x - 8) / 16][(int)(playerPos.y + 8) / 16] >= solidWallId)
-            && (tilemap[layer][(int)(playerPos.x - 8) / 16][(int)(playerPos.y - 8) / 16] >= solidWallId))
+        if ((tilemap[layer][(int)(playerPos.x - 8) / 16][(int)(playerPos.y + strictness) / 16] >= solidWallId)
+            || (tilemap[layer][(int)(playerPos.x - 8) / 16][(int)(playerPos.y - strictness) / 16] >= solidWallId))
             playerPos.x = gridPosX * 16 + 8;
-        if ((tilemap[layer][(int)(playerPos.x + 8) / 16][(int)(playerPos.y + 8) / 16] >= solidWallId)
-            && (tilemap[layer][(int)(playerPos.x + 8) / 16][(int)(playerPos.y - 8) / 16] >= solidWallId))
+        if ((tilemap[layer][(int)(playerPos.x + 8) / 16][(int)(playerPos.y + strictness) / 16] >= solidWallId)
+            || (tilemap[layer][(int)(playerPos.x + 8) / 16][(int)(playerPos.y - strictness) / 16] >= solidWallId))
             playerPos.x = gridPosX * 16 + 8;
     }
 }
