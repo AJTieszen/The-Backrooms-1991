@@ -84,6 +84,7 @@ void TitleScreen();
 void MainMenu();
 void Controls();
 void GfxSettings();
+void mainGame();
 
 // Screen Effects
 
@@ -156,27 +157,13 @@ int main() {
         case 1: MainMenu(); break;
 
             // Game setup
-        case 2:
-            movePlayer(speed);
-
-            if (pressed[b]) speed = 2.5;
-            else speed = 1;
-
-            drawTilemapScroll(walls);
-            playerObj.setPosition(playerPos + playerOffset - screenPos[0]);
-            buffer.draw(playerObj);
-
-            if (playerObj.getPosition().x > 192) screenPos[0].x += speed * frameScl;
-            if (playerObj.getPosition().x < 64) screenPos[0].x -= speed * frameScl;
-            if (playerObj.getPosition().y > 144) screenPos[0].y += speed * frameScl;
-            if (playerObj.getPosition().y < 64) screenPos[0].y -= speed * frameScl;
-            
-            break;
+        case 2: screen = 10; break;
 
             // Gameplay
+        case 10:
+            mainGame(); break;
             
             // Controls
-
         case -1: Controls(); break;
         case -2: MapControls(); break;
 
@@ -581,7 +568,7 @@ void loadGfxSettings() {
 }
 
 void movePlayer(float speed, int layer) {
-    const int strictness = 6;
+    const int strictness = 5;
     int gridPosX = playerPos.x / 16;
     int gridPosY = playerPos.y / 16;
     bool clrUp, clrDn, clrLt, clrRt;
@@ -944,3 +931,21 @@ void GfxSettings() {
         buffer.draw(toggle);
     }
 }
+void mainGame()
+{
+    if (pressed[b]) speed = 2.5;
+    else speed = 1;
+    movePlayer(speed);
+
+    drawTilemapScroll(walls);
+    playerObj.setPosition(playerPos + playerOffset - screenPos[0]);
+    buffer.draw(playerObj);
+
+    if (playerObj.getPosition().x > 192) screenPos[0].x += speed * frameScl;
+    if (playerObj.getPosition().x < 64) screenPos[0].x -= speed * frameScl;
+    if (playerObj.getPosition().y > 144) screenPos[0].y += speed * frameScl;
+    if (playerObj.getPosition().y < 64) screenPos[0].y -= speed * frameScl;
+}
+
+// Screen effects
+
