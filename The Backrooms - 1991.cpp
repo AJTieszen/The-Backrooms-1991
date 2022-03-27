@@ -162,9 +162,14 @@ int main() {
             if (pressed[b]) speed = 2.5;
             else speed = 1;
 
-            drawTilemapStatic(walls);
-            playerObj.setPosition(playerPos + playerOffset);
+            drawTilemapScroll(walls);
+            playerObj.setPosition(playerPos + playerOffset - screenPos[0]);
             buffer.draw(playerObj);
+
+            if (playerObj.getPosition().x > 192) screenPos[0].x += speed * frameScl;
+            if (playerObj.getPosition().x < 64) screenPos[0].x -= speed * frameScl;
+            if (playerObj.getPosition().y > 144) screenPos[0].y += speed * frameScl;
+            if (playerObj.getPosition().y < 64) screenPos[0].y -= speed * frameScl;
             
             break;
 
@@ -230,13 +235,20 @@ void drawTilemapScroll(sf::Texture tex, int layer) {
 
     for (int x = dxt; x < 17 + dxt; x++) {
         for (int y = dyt; y < 15 + dyt; y++) {
-            tileID = tilemap[layer][x][y];
+            if (x >= 0 && y >= 0 && x < 64 && y < 64) {
+                tileID = tilemap[layer][x][y];
+                tileX = (tileID % 16); tileX *= 16;
+                tileY = (tileID / 16); tileY *= 16;
+
+                tile.setColor(sf::Color::White);
+                tile.setTextureRect(sf::IntRect(tileX, tileY, 16, 16));
+            }
+            else {
+                tile.setTextureRect(sf::IntRect(0, 0, 16, 16));
+                tile.setColor(sf::Color::Black);
+            }
+
             tile.setPosition(16.f * x - dx, 16.f * y - dy);
-
-            tileX = (tileID % 16); tileX *= 16;
-            tileY = (tileID / 16); tileY *= 16;
-
-            tile.setTextureRect(sf::IntRect(tileX, tileY, 16, 16));
 
             buffer.draw(tile);
         }
@@ -682,6 +694,11 @@ void MainMenu() {
         case 0:
             screen++;
             loadTilemap("Tiles/Collision Test.txt");
+            while (tilemap[0][(int)playerPos.x / 16][(int)playerPos.y / 16] >= solidWallId) {
+                playerPos.x += 16;
+                playerPos.y += 16;
+            }
+
             break;
         case 1:
             screen = -1;
