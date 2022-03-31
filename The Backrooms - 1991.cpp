@@ -27,7 +27,7 @@ bool showScanlines, blur;
 const int stdFrameRate[] = { 0, 30, 60, 75, 120, 144, 240, 360, 0 }; // 0 = V-Sync
 
 // State data
-int screen, inputTimer, frameTime, selection = 0, mappedButtons = 0, frameCount = 0, currentFrameRate;
+int screen, inputTimer, frameTime, selection = 0, mappedButtons = 0;
 float frameScl; // Normalize for 60 fps
 bool pressed[12]; // up, dn, lt, rt, start, select, a, b, x, y, lb, rb
 
@@ -84,7 +84,6 @@ void TitleScreen();
 void MainMenu();
 void Controls();
 void GfxSettings();
-void MapGen();
 void mainGame();
 
 // Screen Effects
@@ -139,7 +138,6 @@ int main() {
         while(window.pollEvent(event)) {
             if(event.type == sf::Event::Closed) window.close();
         }
-        frameCount++;
 
         // Toggle debug output
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::Tab)) {
@@ -159,7 +157,7 @@ int main() {
         case 1: MainMenu(); break;
 
             // Game setup
-        case 2: MapGen(); break;
+        case 2: screen = 10; break;
 
             // Gameplay
         case 10:
@@ -177,24 +175,6 @@ int main() {
             buffer.clear(sf::Color::Blue);
             drawText(0, 0, "Error: unrecognized game state.", sf::Color::White);
             drawText(0, 16, "Screen: " + to_string(screen), sf::Color::Cyan);
-        }
-
-        // FrameRate Counter
-        if (showDebugInfo) {
-            sf::RectangleShape frbg(sf::Vector2f(64.f, 16.f));
-            sf::Color frcol;
-            frbg.setFillColor(sf::Color(0, 0, 0, 128));
-
-            if ((int)(frameCount * frameScl) % 10 == 0) currentFrameRate = (1.f / frameTime) * 1000;
-
-            if (currentFrameRate > 1.05 * maxFrameRate) frcol = sf::Color::Cyan;
-            else if (currentFrameRate > 0.95 * maxFrameRate) frcol = sf::Color::Green;
-            else frcol = sf::Color::Red;
-
-            frbg.setPosition(sf::Vector2f(200.f - 8 * (currentFrameRate > 999), 0.f));
-            buffer.draw(frbg);
-
-            drawText(200 - 8 * (currentFrameRate > 999), 0, to_string(currentFrameRate) + " FPS", frcol);
         }
 
         // Update graphics
@@ -950,10 +930,6 @@ void GfxSettings() {
         toggle.setPosition(160.f + 14 * blur, 160);
         buffer.draw(toggle);
     }
-}
-void MapGen() {
-    buffer.clear(sf::Color::Black);
-
 }
 void mainGame()
 {

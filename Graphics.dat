@@ -1,5 +1,5 @@
-Aspect_Ratio: 1
-Scale_Factor: 400
-Frame_Rate: 60
+Aspect_Ratio: 0
+Scale_Factor: 300
+Frame_Rate: 0
 Scanlines: 1
 CRT_Blur: 1
