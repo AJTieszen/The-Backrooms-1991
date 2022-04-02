@@ -22,13 +22,13 @@ const int solidWallId = 16;
 const enum keys { up, dn, lt, rt, start, slct, a, b, x, y, lb, rb};
 int ctrlMap[] = {-1, -1, 1, -1, 7, 6, 0, 1, 2, 3, 4, 5}; // jst y inv, jst x inv, dpad x inv, dpad y inv, start, slct, a, b, x, y, lb, rb
 
-int scale = 200, aspectRatio = 0, maxFrameRate = 0, frameRateIndex = 0;
+int scale = 200, aspectRatio = 0, maxFrameRate = 0, frameRateIndex = 0, frameCount = 0;
 bool showScanlines, blur;
 const int stdFrameRate[] = { 0, 30, 60, 75, 120, 144, 240, 360, 0 }; // 0 = V-Sync
 
 // State data
-int screen, inputTimer, frameTime, selection = 0, mappedButtons = 0;
-float frameScl; // Normalize for 60 fps
+int screen, inputTimer, selection = 0, mappedButtons = 0;
+float frameScl, frameTime, currentFrameRate; // Normalize for 60 fps
 bool pressed[12]; // up, dn, lt, rt, start, select, a, b, x, y, lb, rb
 
 // Global SFML & graphics objects
@@ -177,6 +177,25 @@ int main() {
             drawText(0, 16, "Screen: " + to_string(screen), sf::Color::Cyan);
         }
 
+        // Framerate counter
+        if (showDebugInfo) {
+            sf::Color fpsCol;
+            sf::RectangleShape fpsBg(sf::Vector2f(92, 16));
+            sf::Vector2f fpsStart(207.f - 8 * (currentFrameRate > 99) - 8 * (currentFrameRate > 999), 0.f);
+
+            if (currentFrameRate > 1.05 * maxFrameRate) fpsCol = sf::Color::Cyan;
+            else if (currentFrameRate > 0.95 * maxFrameRate) fpsCol = sf::Color::Green;
+            else if (currentFrameRate > 0.9 * maxFrameRate) fpsCol = sf::Color::Yellow;
+            else if (currentFrameRate > 0.8 * maxFrameRate) fpsCol = sf::Color(255, 127, 0);
+            else fpsCol = sf::Color::Red;
+
+            fpsBg.setFillColor(sf::Color(0, 0, 0, 127));
+            fpsBg.setPosition(fpsStart);
+
+            buffer.draw(fpsBg);
+            drawText(fpsStart.x, fpsStart.y, to_string((int)currentFrameRate) + " FPS", fpsCol);
+        }
+
         // Update graphics
         buffer.display();
         bufferObj.setTexture(buffer.getTexture());
@@ -184,6 +203,7 @@ int main() {
         if (showScanlines) window.draw(scanlineObj);
         window.display();
         window.clear(sf::Color::Black);
+        buffer.clear();
     }
 
     cout << "\n\n\nThank you for playing!\n\n\n";
@@ -618,8 +638,12 @@ void updateFrameTime() {
     sf::Time frametime = clk.getElapsedTime();
     clk.restart();
 
-    frameTime = frametime.asMilliseconds();
+    frameTime = frametime.asMicroseconds() / 1000.f;
     frameScl = frameTime / 16.6667;
+
+    frameCount++;
+
+    if ((int)(frameCount * frameScl) % 10 == 0) currentFrameRate = 1000 / frameTime;
 }
 
 // Game Functions
@@ -655,6 +679,7 @@ void TitleScreen() {
     }
 }
 void MainMenu() {
+    drawTilemapStatic(titleScreen, 0);
     drawTilemapStatic(menu, 1);
 
     // Load and display text
@@ -865,7 +890,7 @@ void GfxSettings() {
             frameRateIndex--;
             inputTimer = 200;
         }
-        if (pressed[rt] && inputTimer == 0 && frameRateIndex < sizeof(stdFrameRate) / sizeof(stdFrameRate[0] - 1)) {
+        if (pressed[rt] && inputTimer == 0 && frameRateIndex < sizeof(stdFrameRate) / sizeof(stdFrameRate[0]) - 1) {
             frameRateIndex++;
             inputTimer = 200;
         }
@@ -910,7 +935,7 @@ void GfxSettings() {
     }
     buffer.setSmooth(blur);
 
-    // Indicate slcted options
+    // Indicate selected options
     {
         if (selection < 6) drawHighlightBox(0, 1 + 2 * selection, 15 - 6 * (selection == 5));
         else drawHighlightBox(9, 11, 6);
