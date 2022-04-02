@@ -19,7 +19,7 @@ const string title = "The Backrooms: 1991";
 bool showDebugInfo = true, toggleDebugInfo = false;
 const int solidWallId = 16;
 
-const enum keys { up, dn, lt, rt, start, slct, a, b, x, y, lb, rb};
+enum keys { up, dn, lt, rt, start, slct, a, b, x, y, lb, rb};
 int ctrlMap[] = {-1, -1, 1, -1, 7, 6, 0, 1, 2, 3, 4, 5}; // jst y inv, jst x inv, dpad x inv, dpad y inv, start, slct, a, b, x, y, lb, rb
 
 int scale = 200, aspectRatio = 0, maxFrameRate = 0, frameRateIndex = 0, frameCount = 0;

@@ -8,24 +8,28 @@ using namespace std;
 
 #include <SFML/Graphics.hpp>
 
+// Game variables
+sf::Vector2f screenPos[4], playerPos;
+const sf::Vector2f playerOffset(-8.f, -24.f);
+
+float speed;
+
 // Startup settings & defaults
 const string title = "The Backrooms: 1991";
 bool showDebugInfo = true, toggleDebugInfo = false;
-int maxFrameRate = 60;
+const int solidWallId = 16;
 
 enum keys { up, dn, lt, rt, start, slct, a, b, x, y, lb, rb};
-int ctrlMap[] = {-1, -1, 1, -1, 7, 6, 0, 1, 2, 3, 4, 5}; // jst y inv, jst x inv, dpad x inv, dpad y inv, start, select, a, b, x, y, lb, rb
+int ctrlMap[] = {-1, -1, 1, -1, 7, 6, 0, 1, 2, 3, 4, 5}; // jst y inv, jst x inv, dpad x inv, dpad y inv, start, slct, a, b, x, y, lb, rb
 
-int scale = 200, aspectRatio = 0, frameRateIndex = 2;
+int scale = 200, aspectRatio = 0, maxFrameRate = 0, frameRateIndex = 0, frameCount = 0;
 bool showScanlines, blur;
 const int stdFrameRate[] = { 0, 30, 60, 75, 120, 144, 240, 360, 0 }; // 0 = V-Sync
 
 // State data
-int screen, inputTimer, frameTime, slction = 0;
-bool keysPressed[12]; // up, dn, lt, rt, start, slct, a, b, x, y, lb, rb
-
-// Game state
-int mappedButtons = 0;
+int screen, inputTimer, selection = 0, mappedButtons = 0;
+float frameScl, frameTime, currentFrameRate; // Normalize for 60 fps
+bool pressed[12]; // up, dn, lt, rt, start, select, a, b, x, y, lb, rb
 
 // Global SFML & graphics objects
 sf::Clock clk;
@@ -44,11 +48,21 @@ sf::Texture menu;
 sf::Texture controls;
 sf::Texture settings;
 
+sf::Texture walls;
+sf::Texture player;
+
+sf::Sprite playerObj;
+
 // Engine functions
-void drawTilemapScreen(sf::Texture, int layer);
+void drawTilemapStatic(sf::Texture tex, int layer);
+void drawTilemapStatic(sf::Texture tex);
+void drawTilemapScroll(sf::Texture tex, int layer);
+void drawTilemapScroll(sf::Texture tex);
 void drawText(int x, int y, string text, sf::Color color);
 void drawText(int x, int y, string text);
 void loadTilemap(string filename, int layer);
+void loadTilemap(string filename);
+
 void readInput();
 void MapControls();
 void saveControlMap();
@@ -56,7 +70,11 @@ void loadControlMap();
 void saveGfxSettings();
 void loadGfxSettings();
 
-int updateFrameTime();
+void movePlayer(float speed, int layer); // layer determines collision detection
+void movePlayer(float speed);
+void movePlayer();
+
+void updateFrameTime();
 
 // Game Functions
 void drawHighlightBox(int x, int y, int width);
@@ -66,6 +84,7 @@ void TitleScreen();
 void MainMenu();
 void Controls();
 void GfxSettings();
+void mainGame();
 
 // Screen Effects
 
@@ -88,7 +107,7 @@ int main() {
     {
         if (showDebugInfo) cout << "\nLoading graphics...";
 
-        if (!scanlines.loadFromFile("Scanlines.png")) cout << "\nUnable to load scanline overlay";
+        if (!scanlines.loadFromFile("Fullscreen Assets/Scanlines.png")) cout << "\nUnable to load scanline overlay";
         scanlineObj.setTexture(scanlines);
         scanlines.setSmooth(true);
 
@@ -98,14 +117,15 @@ int main() {
         if (!controls.loadFromFile("Tiles/Controls.png")) cout << "\nUnable to load controls tileset.";
         if (!settings.loadFromFile("Tiles/Settings.png")) cout << "\nUnable to load settings tileset.";
 
-        loadTilemap("Tiles/Title Screen.txt", 0);
+        if (!walls.loadFromFile("Tiles/Background.png")) cout << "\nUnable to load background tileset.";
+        if (!player.loadFromFile("Sprites/Generic Guy.png")) cout << "\nUnable to load player character.";
+        playerObj.setTexture(player);
+
+        loadTilemap("Tiles/Title Screen.txt");
         loadTilemap("Tiles/Main Menu.txt", 1);
 
         if (showDebugInfo) cout << "done.";
     }
-
-    loadTilemap("Tiles/Title Screen.txt", 0);
-    loadTilemap("Tiles/Main Menu.txt", 1);
 
     // Load controls
     loadControlMap();
@@ -135,20 +155,45 @@ int main() {
             // Main menu
         case 0: TitleScreen(); break;
         case 1: MainMenu(); break;
+
             // Game setup
-            
+        case 2: screen = 10; break;
+
             // Gameplay
+        case 10:
+            mainGame(); break;
             
             // Controls
         case -1: Controls(); break;
         case -2: MapControls(); break;
+
             // Settings
         case -10: GfxSettings(); break;
 
+            // Unrecognized game state
         default:
             buffer.clear(sf::Color::Blue);
             drawText(0, 0, "Error: unrecognized game state.", sf::Color::White);
             drawText(0, 16, "Screen: " + to_string(screen), sf::Color::Cyan);
+        }
+
+        // Framerate counter
+        if (showDebugInfo) {
+            sf::Color fpsCol;
+            sf::RectangleShape fpsBg(sf::Vector2f(92, 16));
+            sf::Vector2f fpsStart(207.f - 8 * (currentFrameRate > 99) - 8 * (currentFrameRate > 999), 0.f);
+
+            if (currentFrameRate > 1.05 * maxFrameRate) fpsCol = sf::Color::Cyan;
+            else if (currentFrameRate > 0.95 * maxFrameRate) fpsCol = sf::Color::Green;
+            else if (currentFrameRate > 0.9 * maxFrameRate) fpsCol = sf::Color::Yellow;
+            else if (currentFrameRate > 0.8 * maxFrameRate) fpsCol = sf::Color(255, 127, 0);
+            else fpsCol = sf::Color::Red;
+
+            fpsBg.setFillColor(sf::Color(0, 0, 0, 127));
+            fpsBg.setPosition(fpsStart);
+
+            buffer.draw(fpsBg);
+            drawText(fpsStart.x, fpsStart.y, to_string((int)currentFrameRate) + " FPS", fpsCol);
         }
 
         // Update graphics
@@ -158,6 +203,7 @@ int main() {
         if (showScanlines) window.draw(scanlineObj);
         window.display();
         window.clear(sf::Color::Black);
+        buffer.clear();
     }
 
     cout << "\n\n\nThank you for playing!\n\n\n";
@@ -166,7 +212,7 @@ int main() {
 
 
 // Engine functions
-void drawTilemapScreen(sf::Texture tex, int layer) {
+void drawTilemapStatic(sf::Texture tex, int layer) {
     sf::Sprite tile;
     tile.setTexture(tex);
     int tileID, tileX, tileY;
@@ -184,6 +230,40 @@ void drawTilemapScreen(sf::Texture tex, int layer) {
             buffer.draw(tile);
         }
     }
+}
+void drawTilemapStatic(sf::Texture tex) {
+    drawTilemapStatic(tex, 0);
+}
+void drawTilemapScroll(sf::Texture tex, int layer) {
+    sf::Sprite tile;
+    tile.setTexture(tex);
+    int tileID, tileX, tileY;
+    int dx = screenPos[layer].x, dy = screenPos[layer].y, dxt = dx / 16, dyt = dy / 16;
+
+    for (int x = dxt; x < 17 + dxt; x++) {
+        for (int y = dyt; y < 15 + dyt; y++) {
+            if (x >= 0 && y >= 0 && x < 64 && y < 64) {
+                tileID = tilemap[layer][x][y];
+                tileX = (tileID % 16); tileX *= 16;
+                tileY = (tileID / 16); tileY *= 16;
+
+                tile.setColor(sf::Color::White);
+                tile.setTextureRect(sf::IntRect(tileX, tileY, 16, 16));
+            }
+            else {
+                tile.setTextureRect(sf::IntRect(0, 0, 16, 16));
+                tile.setColor(sf::Color::Black);
+            }
+
+            tile.setPosition(16.f * x - dx, 16.f * y - dy);
+
+            buffer.draw(tile);
+        }
+    }
+
+}
+void drawTilemapScroll(sf::Texture tex) {
+    drawTilemapScroll(tex, 0);
 }
 void drawText(int x, int y, string txt, sf::Color color) {
     sf::Sprite text;
@@ -210,7 +290,6 @@ void loadTilemap(string filename, int layer) {
     string line = " ";
     stringstream linestream;
     int columns, rows;
-    string errorText = "Unable to open tilemap:" + filename;
 
     ifstream file(filename);
 
@@ -242,14 +321,18 @@ void loadTilemap(string filename, int layer) {
     }
     else cout << "\nUnable to open tilemap: " << filename;
 }
+void loadTilemap(string filename) {
+    loadTilemap(filename, 0);
+}
+
 void readInput() {
     // Reset from last frame
-    for(int i = 0; i < sizeof(keysPressed) / sizeof(keysPressed[0]); i++) {
-        keysPressed[i] = false;
+    for(int i = 0; i < sizeof(pressed) / sizeof(pressed[0]); i++) {
+        pressed[i] = false;
     }
 
     // Handle multi-frame input blocking
-    frameTime = updateFrameTime();
+    updateFrameTime();
     if(inputTimer > 0) {
         inputTimer -= frameTime;
     }
@@ -260,57 +343,57 @@ void readInput() {
     // Keyboard
     {
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W))
-            keysPressed[up] = true;
+            pressed[up] = true;
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S))
-            keysPressed[dn] = true;
+            pressed[dn] = true;
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A))
-            keysPressed[lt] = true;
+            pressed[lt] = true;
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right) || sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D))
-            keysPressed[rt] = true;
+            pressed[rt] = true;
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::E))
-            keysPressed[a] = true;
+            pressed[a] = true;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Q))
-            keysPressed[x] = true;
+            pressed[x] = true;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::R))
-            keysPressed[b] = true;
+            pressed[b] = true;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::F))
-            keysPressed[y] = true;
+            pressed[y] = true;
 
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Enter))
-            keysPressed[start] = true;
+            pressed[start] = true;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Escape))
-            keysPressed[slct] = true;
+            pressed[slct] = true;
     }
 
     // Controller
     if(sf::Joystick::isConnected(0)) {
         if(sf::Joystick::isButtonPressed(0, ctrlMap[a]))
-            keysPressed[a] = true;
+            pressed[a] = true;
         if(sf::Joystick::isButtonPressed(0, ctrlMap[b]))
-            keysPressed[b] = true;
+            pressed[b] = true;
         if(sf::Joystick::isButtonPressed(0, ctrlMap[x]))
-            keysPressed[x] = true;
+            pressed[x] = true;
         if(sf::Joystick::isButtonPressed(0, ctrlMap[y]))
-            keysPressed[y] = true;
+            pressed[y] = true;
 
         if(sf::Joystick::isButtonPressed(0, ctrlMap[lb]))
-            keysPressed[lb] = true;
+            pressed[lb] = true;
         if(sf::Joystick::isButtonPressed(0, ctrlMap[rb]))
-            keysPressed[rb] = true;
+            pressed[rb] = true;
         if(sf::Joystick::isButtonPressed(0, ctrlMap[slct]))
-            keysPressed[slct] = true;
+            pressed[slct] = true;
         if(sf::Joystick::isButtonPressed(0, ctrlMap[start]))
-            keysPressed[start] = true;
+            pressed[start] = true;
 
         if(sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::Y) * ctrlMap[0] > 50 || sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovY) * ctrlMap[2] > 50)
-            keysPressed[up] = true;
+            pressed[up] = true;
         if(sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::Y) * ctrlMap[0] < -50 || sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovY) * ctrlMap[2] < -50)
-            keysPressed[dn] = true;
+            pressed[dn] = true;
         if(sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::X) * ctrlMap[1] > 50 || sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovX) * ctrlMap[3] > 50)
-            keysPressed[lt] = true;
+            pressed[lt] = true;
         if(sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::X) * ctrlMap[1] < -50 || sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovX) * ctrlMap[3] < -50)
-            keysPressed[rt] = true;
+            pressed[rt] = true;
     }
 }
 void MapControls() {
@@ -320,8 +403,6 @@ void MapControls() {
             cout << "\n No joystick found to map.";
         }
     }
-
-    if (showDebugInfo) cout << "\nMapped buttons:" << mappedButtons;
 
     buffer.clear(sf::Color::Black);
 
@@ -374,10 +455,12 @@ void MapControls() {
         if (sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovX) > 50.f) {
             ctrlMap[3] = -1;
             mappedButtons++;
+            inputTimer = 200;
         }
         if (sf::Joystick::getAxisPosition(0, sf::Joystick::Axis::PovX) < -50.f) {
             ctrlMap[3] = 1;
             mappedButtons++;
+            inputTimer = 200;
         }
         break;
 
@@ -385,7 +468,7 @@ void MapControls() {
     case 12:
         screen++;
         saveControlMap();
-        slction = 1;
+        selection = 1;
         inputTimer = 200;
         break;
 
@@ -504,11 +587,63 @@ void loadGfxSettings() {
     if (showDebugInfo) cout << "Done.";
 }
 
-int updateFrameTime() {
+void movePlayer(float speed, int layer) {
+    const int strictness = 5;
+    int gridPosX = playerPos.x / 16;
+    int gridPosY = playerPos.y / 16;
+    bool clrUp, clrDn, clrLt, clrRt;
+
+    // check if path is clear
+    {
+        clrUp = (tilemap[layer][(int)(playerPos.x + strictness - 1) / 16][(int)(playerPos.y - strictness) / 16] < solidWallId)
+            && (tilemap[layer][(int)(playerPos.x - strictness + 1) / 16][(int)(playerPos.y - strictness) / 16] < solidWallId);
+        clrDn = (tilemap[layer][(int)(playerPos.x + strictness - 1) / 16][(int)(playerPos.y + strictness) / 16] < solidWallId)
+            && (tilemap[layer][(int)(playerPos.x - strictness + 1) / 16][(int)(playerPos.y + strictness) / 16] < solidWallId);
+        clrLt = (tilemap[layer][(int)(playerPos.x - strictness) / 16][(int)(playerPos.y + strictness - 1) / 16] < solidWallId)
+            && (tilemap[layer][(int)(playerPos.x - strictness) / 16][(int)(playerPos.y - strictness + 1) / 16] < solidWallId);
+        clrRt = (tilemap[layer][(int)(playerPos.x + strictness) / 16][(int)(playerPos.y + strictness - 1) / 16] < solidWallId)
+            && (tilemap[layer][(int)(playerPos.x + strictness) / 16][(int)(playerPos.y - strictness + 1) / 16] < solidWallId);
+    }
+
+    // move character
+    if (pressed[up] && clrUp) playerPos.y -= speed * frameScl;
+    if (pressed[dn] && clrDn) playerPos.y += speed * frameScl;
+    if (pressed[lt] && clrLt) playerPos.x -= speed * frameScl;
+    if (pressed[rt] && clrRt) playerPos.x += speed * frameScl;
+
+    // push character out of wall
+    {
+        if ((tilemap[layer][(int)(playerPos.x + strictness) / 16][(int)(playerPos.y - 8) / 16] >= solidWallId)
+            || (tilemap[layer][(int)(playerPos.x - strictness) / 16][(int)(playerPos.y - 8) / 16] >= solidWallId))
+            playerPos.y = gridPosY * 16 + 8;
+        if ((tilemap[layer][(int)(playerPos.x + strictness) / 16][(int)(playerPos.y + 8) / 16] >= solidWallId)
+            || (tilemap[layer][(int)(playerPos.x - strictness) / 16][(int)(playerPos.y + 8) / 16] >= solidWallId))
+            playerPos.y = gridPosY * 16 + 8;
+        if ((tilemap[layer][(int)(playerPos.x - 8) / 16][(int)(playerPos.y + strictness) / 16] >= solidWallId)
+            || (tilemap[layer][(int)(playerPos.x - 8) / 16][(int)(playerPos.y - strictness) / 16] >= solidWallId))
+            playerPos.x = gridPosX * 16 + 8;
+        if ((tilemap[layer][(int)(playerPos.x + 8) / 16][(int)(playerPos.y + strictness) / 16] >= solidWallId)
+            || (tilemap[layer][(int)(playerPos.x + 8) / 16][(int)(playerPos.y - strictness) / 16] >= solidWallId))
+            playerPos.x = gridPosX * 16 + 8;
+    }
+}
+void movePlayer(float speed) {
+    movePlayer(speed, 0);
+}
+void movePlayer() {
+    movePlayer(1, 0);
+}
+
+void updateFrameTime() {
     sf::Time frametime = clk.getElapsedTime();
     clk.restart();
 
-    return frametime.asMilliseconds();
+    frameTime = frametime.asMicroseconds() / 1000.f;
+    frameScl = frameTime / 16.6667;
+
+    frameCount++;
+
+    if ((int)(frameCount * frameScl) % 10 == 0) currentFrameRate = 1000 / frameTime;
 }
 
 // Game Functions
@@ -536,15 +671,16 @@ void drawHighlightBox(int x, int y, int width) {
 
 // Game Screens
 void TitleScreen() {
-    drawTilemapScreen(titleScreen, 0);
+    drawTilemapStatic(titleScreen);
 
-    if((keysPressed[start] || keysPressed[a]) && inputTimer == 0) {
+    if((pressed[start] || pressed[a]) && inputTimer == 0) {
         screen++;
         inputTimer = 250;
     }
 }
 void MainMenu() {
-    drawTilemapScreen(menu, 1);
+    drawTilemapStatic(titleScreen, 0);
+    drawTilemapStatic(menu, 1);
 
     // Load and display text
     string line;
@@ -562,42 +698,49 @@ void MainMenu() {
     }
 
     // Menu Visuals
-    drawHighlightBox(4, 3 + slction * 2, 7);
+    drawHighlightBox(4, 3 + selection * 2, 7);
 
     // Menu functionality
-    if ((keysPressed[a] || keysPressed[start]) && inputTimer == 0) { // slct option
-        switch (slction) {
-        case 0: screen++;
+    if ((pressed[a] || pressed[start]) && inputTimer == 0) { // slct option
+        switch (selection) {
+        case 0:
+            screen++;
+            loadTilemap("Tiles/Collision Test.txt");
+            while (tilemap[0][(int)playerPos.x / 16][(int)playerPos.y / 16] >= solidWallId) {
+                playerPos.x += 16;
+                playerPos.y += 16;
+            }
+
             break;
         case 1:
             screen = -1;
-            loadTilemap("Tiles/Controls.txt", 0);
+            loadTilemap("Tiles/Controls.txt");
             loadTilemap("Tiles/Controls Menu.txt", 1);
             break;
         case 2:
             screen = -10;
-            loadTilemap("Tiles/Graphics Settings.txt", 0);
+            loadTilemap("Tiles/Graphics Settings.txt");
             loadTilemap("Tiles/Graphics Settings Bottom.txt", 1);
             break;
         case 3: window.close();
         }
         inputTimer = 250;
-        slction = 0;
+        selection = 0;
     }
-    if (keysPressed[up] && inputTimer == 0) { // Move slction down
-        slction--;
-        if (slction < 0) slction = 3;
+    if (pressed[up] && inputTimer == 0) { // Move selection down
+        selection--;
+        if (selection < 0) selection = 3;
         inputTimer = 200;
     }
-    if (keysPressed[dn] && inputTimer == 0) { // Move slction up
-        slction++;
-        if (slction > 3) slction = 0;
+    if (pressed[dn] && inputTimer == 0) { // Move selection up
+        selection++;
+        if (selection > 3) selection = 0;
         inputTimer = 200;
     }
 }
 void Controls() {
-    drawTilemapScreen(controls, 0);
-    drawTilemapScreen(menu, 1);
+    drawTilemapStatic(controls);
+    drawTilemapStatic(menu, 1);
 
     string line;
     ifstream file("Text/Controls.txt");
@@ -624,32 +767,32 @@ void Controls() {
     }
 
     //menu display
-    drawHighlightBox(slction * 9, 11, 9 - slction * 3);
+    drawHighlightBox(selection * 9, 11, 9 - selection * 3);
 
     // Menu Functionality
-    if ((keysPressed[a] || keysPressed[start]) && inputTimer == 0) {
-        switch (slction) {
+    if ((pressed[a] || pressed[start]) && inputTimer == 0) {
+        switch (selection) {
         case 0: // Map controller
             screen--;
             mappedButtons = 0;
             break;
         case 1: // Return to main menu
             screen = 0;
-            slction = 0;
+            selection = 0;
             inputTimer = 200;
-            loadTilemap("Tiles/Title Screen.txt", 0);
+            loadTilemap("Tiles/Title Screen.txt");
             loadTilemap("Tiles/Main Menu.txt", 1);
             break;
         }
 
-        slction = 0;
+        selection = 0;
     }
-    if (keysPressed[lt] && inputTimer == 0 && slction > 0) {
-        slction--;
+    if (pressed[lt] && inputTimer == 0 && selection > 0) {
+        selection--;
         inputTimer = 200;
     }
-    if (keysPressed[rt] && inputTimer == 0 && slction < 1) {
-        slction++;
+    if (pressed[rt] && inputTimer == 0 && selection < 1) {
+        selection++;
         inputTimer = 200;
     }
 }
@@ -658,8 +801,8 @@ void GfxSettings() {
     string line, vsync;
 
     // Draw menu
-    drawTilemapScreen(settings, 0);
-    drawTilemapScreen(menu, 1);
+    drawTilemapStatic(settings);
+    drawTilemapStatic(menu, 1);
     ifstream file("Text/Graphics Settings.txt");
     if (file.is_open()) {
         for (int i = 0; i < 5; i++) {
@@ -681,31 +824,31 @@ void GfxSettings() {
     else drawText(160, 96, to_string(maxFrameRate) + " FPS", sf::Color::White);
 
     // Change Settings
-    if (keysPressed[up] && inputTimer == 0) {
-        slction--;
+    if (pressed[up] && inputTimer == 0) {
+        selection--;
         inputTimer = 200;
     }
-    if (keysPressed[dn] && inputTimer == 0) {
-        slction++;
+    if (pressed[dn] && inputTimer == 0) {
+        selection++;
         inputTimer = 200;
     }
-    if (keysPressed[rt] && slction == 5 && inputTimer == 0) {
-        slction++;
+    if (pressed[rt] && selection == 5 && inputTimer == 0) {
+        selection++;
         inputTimer = 200;
     }
-    if (keysPressed[lt] && slction == 6 && inputTimer == 0) {
-        slction--;
+    if (pressed[lt] && selection == 6 && inputTimer == 0) {
+        selection--;
         inputTimer = 200;
     }
-    switch (slction) {
-    case -1: slction = 6; break;
+    switch (selection) {
+    case -1: selection = 6; break;
     case 0: // Aspect Ratio
-        if (keysPressed[lt] && inputTimer == 0) {
+        if (pressed[lt] && inputTimer == 0) {
             aspectRatio--;
             if (aspectRatio < 0) aspectRatio = 2;
             inputTimer = 200;
         }
-        if ((keysPressed[rt] || keysPressed[a]) && inputTimer == 0) {
+        if ((pressed[rt] || pressed[a]) && inputTimer == 0) {
             aspectRatio++;
             if (aspectRatio > 2) aspectRatio = 0;
             inputTimer = 200;
@@ -721,11 +864,11 @@ void GfxSettings() {
         break;
 
     case 1: // Scale
-        if (keysPressed[lt] && inputTimer == 0 && scale > 50) {
+        if (pressed[lt] && inputTimer == 0 && scale > 50) {
             scale -= 25;
             inputTimer = 200;
         }
-        if (keysPressed[rt] && inputTimer == 0) {
+        if (pressed[rt] && inputTimer == 0) {
             scale += 25;
             inputTimer = 200;
         }
@@ -743,11 +886,11 @@ void GfxSettings() {
         break;
 
     case 2: // Frame Rate
-        if (keysPressed[lt] && inputTimer == 0 && frameRateIndex > 0) {
+        if (pressed[lt] && inputTimer == 0 && frameRateIndex > 0) {
             frameRateIndex--;
             inputTimer = 200;
         }
-        if (keysPressed[rt] && inputTimer == 0 && frameRateIndex < sizeof(stdFrameRate) / sizeof(stdFrameRate[0] - 1)) {
+        if (pressed[rt] && inputTimer == 0 && frameRateIndex < sizeof(stdFrameRate) / sizeof(stdFrameRate[0]) - 1) {
             frameRateIndex++;
             inputTimer = 200;
         }
@@ -758,14 +901,14 @@ void GfxSettings() {
         break;
 
     case 3: // Scanlines
-        if ((keysPressed[rt] || keysPressed[lt] || keysPressed[a]) && inputTimer == 0) {
+        if ((pressed[rt] || pressed[lt] || pressed[a]) && inputTimer == 0) {
             showScanlines = !showScanlines;
             inputTimer = 200;
         }
         break;
 
     case 4: // Blur
-        if ((keysPressed[rt] || keysPressed[lt] || keysPressed[a]) && inputTimer == 0) {
+        if ((pressed[rt] || pressed[lt] || pressed[a]) && inputTimer == 0) {
             blur = !blur;
             if (blur) showScanlines = true;
             inputTimer = 200;
@@ -773,28 +916,28 @@ void GfxSettings() {
         break;
 
     case 5: // Save settings
-        if ((keysPressed[a] || keysPressed[start]) && inputTimer == 0) {
+        if ((pressed[a] || pressed[start]) && inputTimer == 0) {
             saveGfxSettings();
             inputTimer = 200;
         }
         break;
 
     case 6: // Return to main menu
-        if ((keysPressed[a] || keysPressed[start]) && inputTimer == 0) {
+        if ((pressed[a] || pressed[start]) && inputTimer == 0) {
             screen = 0;
-            slction = 0;
+            selection = 0;
             inputTimer = 200;
-            loadTilemap("Tiles/Title Screen.txt", 0);
+            loadTilemap("Tiles/Title Screen.txt");
             loadTilemap("Tiles/Main Menu.txt", 1);
         }
         break;
-    case 7: slction = 0;
+    case 7: selection = 0;
     }
     buffer.setSmooth(blur);
 
-    // Indicate slcted options
+    // Indicate selected options
     {
-        if (slction < 6) drawHighlightBox(0, 1 + 2 * slction, 15 - 6 * (slction == 5));
+        if (selection < 6) drawHighlightBox(0, 1 + 2 * selection, 15 - 6 * (selection == 5));
         else drawHighlightBox(9, 11, 6);
 
         sf::RectangleShape rect(sf::Vector2f(20.f, 20.f));
@@ -813,3 +956,21 @@ void GfxSettings() {
         buffer.draw(toggle);
     }
 }
+void mainGame()
+{
+    if (pressed[b]) speed = 2.5;
+    else speed = 1;
+    movePlayer(speed);
+
+    drawTilemapScroll(walls);
+    playerObj.setPosition(playerPos + playerOffset - screenPos[0]);
+    buffer.draw(playerObj);
+
+    if (playerObj.getPosition().x > 192) screenPos[0].x += speed * frameScl;
+    if (playerObj.getPosition().x < 64) screenPos[0].x -= speed * frameScl;
+    if (playerObj.getPosition().y > 144) screenPos[0].y += speed * frameScl;
+    if (playerObj.getPosition().y < 64) screenPos[0].y -= speed * frameScl;
+}
+
+// Screen effects
+
