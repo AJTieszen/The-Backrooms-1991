@@ -3,7 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
-#include <array>
+#include <vector>
 #include <time.h> // used to seed RNG
 #include <stdlib.h> // for rand function
 
@@ -19,8 +19,13 @@ float speed;
 
 // Startup settings & defaults
 const string title = "The Backrooms: 1991";
-bool showDebugInfo = true, toggleDebugInfo = false;
-const int solidWallId = 16;
+bool showDebugInfo = false, toggleDebugInfo = false;
+
+const int solidWallId = 16, wallDensity = 30;
+int mapSize = 3; // number of 64x64 chunks
+int doorFreq = 40; // number of doors to create within a chunk
+int chunkDoorRarity = 30; // Determines hiow few doors generate between chunks. Larger number = less doors on average.
+int wallLengthVariance = 40, wallLengthMin = 24;
 
 enum keys { up, dn, lt, rt, start, slct, a, b, x, y, lb, rb};
 int ctrlMap[] = {-1, -1, 1, -1, 7, 6, 0, 1, 2, 3, 4, 5}; // jst y inv, jst x inv, dpad x inv, dpad y inv, start, slct, a, b, x, y, lb, rb
@@ -137,7 +142,7 @@ int main() {
     loadGfxSettings();
 
     // Setup RNG
-    srand(time(NULL));
+    srand((int)time(NULL));
 
     while(window.isOpen()) {
         // System window management
@@ -678,38 +683,129 @@ void drawHighlightBox(int x, int y, int width) {
     }
 }
 void generateMap() {
-    if (showDebugInfo) cout << "\n Setting up map generation.";
-    const int sizeX = 256, sizeY = 224;
-    int walls[sizeX][sizeY];
-    sf::RectangleShape pxl(sf::Vector2f(1.f, 1.f));
-    int pxlVal;
-    for (int x = 0; x < sizeX; x++) {
-        for (int y = 0; y < sizeY; y++) {
-            walls[x][y] = 0;
-        }
-    }
-
-    if (showDebugInfo) cout << "\n Generating map layout.";
-    for (int i = 0; i < sizeX; i++) {
-        walls[i][0] = 16;
-    }
-
-    if (showDebugInfo) cout << "\n Rendering map preview.";
-    for (int x = 0; x < sizeX; x++) {
-        for (int y = 0; y < sizeY; y++) {
-            pxlVal = walls[x][y];
-
-            if (pxlVal == 0) pxl.setFillColor(sf::Color::Black);
-            else pxl.setFillColor(sf::Color::White);
-            pxl.setPosition(x, y);
-
-            buffer.draw(pxl);
-        }
-    }
+    // Generate Map
+    drawText(64, 16, "Preparing to generate map...", sf::Color::White);
     updateScreen();
 
-    sf::sleep(sf::seconds(10));
-    window.close();
+    sf::RectangleShape pxl(sf::Vector2f(1.f, 1.f));
+    int pxlVal, n;
+
+    vector<vector<int>> walls(mapSize * 64, vector<int>(mapSize * 64, 0));
+
+    drawText(64, 16, "Building Walls...", sf::Color::White);
+    updateScreen();
+    for (int cx = 0; cx < mapSize; cx ++) {
+        for (int cy = 0; cy < mapSize; cy++) {
+            if (showDebugInfo) cout << "\n     Chunk (" << cx << ", " << cy << ").";
+
+            // Perimeter Walls
+            for (int i = 0; i < 64; i++) {
+                walls[i + 64 * cx][64 * cy] = 16;
+                walls[i + 64 * cx][63 + 64 * cy] = 16;
+                walls[64 * cx][i + 64 * cy] = 16;
+                walls[63 + 64 * cx][i + 64 * cy] = 16;
+            }
+
+            // Interior Walls
+            for (int i = 0; i < wallDensity; i++) {
+                int x = (rand() % 16) * 4 + 64 * cx;
+                int y = (rand() % 16) * 4 + 64 * cy;
+                int l = rand() % wallLengthVariance + wallLengthMin;
+                int d = rand() % 4;
+
+                for (int j = 0; j < l; j++) {
+                    switch (d) {
+                    case 0:
+                        if (x + j < 64) walls[x + j][y] = 16;
+                        break;
+                    case 1:
+                        if (y + j < 64) walls[x][y + j] = 16;
+                        break;
+                    case 2:
+                        if (x - j > 0) walls[x - j][y] = 16;
+                        break;
+                    case 3:
+                        if (y - j > 0) walls[x][y - j] = 16;
+                        break;
+                    default:
+                        walls[x][y] = 16;
+                    }
+                }
+            }
+        }
+    }
+
+    drawText(64, 16, "Cutting out doors...", sf::Color::White);
+    updateScreen;
+    for (int cx = 0; cx < mapSize; cx++) {
+        for (int cy = 0; cy < mapSize; cy ++) {
+            if (showDebugInfo) cout << "\n     Chunk (" << cx << ", " << cy << ").";
+
+            // Between Chunks
+            for (int i = 1; i < 63; i++) {
+                n = rand() % chunkDoorRarity; // left walls
+                if (n == 1)
+                {
+                    walls[cx * 64][cy * 64 + i] = 0;
+                    if (cx > 0) walls[cx * 64 - 1][cy * 64 + i] = 0;
+                }
+                n = rand() % chunkDoorRarity; // right walls
+                if (n == 1)
+                {
+                    walls[cx * 64 + 63][cy * 64 + i] = 0;
+                    if (cx < mapSize - 1) walls[cx * 64 + 64][cy * 64 + i] = 0;
+                }
+                n = rand() % chunkDoorRarity; // top walls
+                if (n == 1)
+                {
+                    walls[cx * 64 + i][cy * 64] = 0;
+                    if (cy > 0) walls[cx * 64 + i][cy * 64 - 1] = 0;
+                }
+                n = rand() % chunkDoorRarity; // bottom walls
+                if (n == 1)
+                {
+                    walls[cx * 64 + i][cy * 64 + 63] = 0;
+                    if (cy < mapSize - 1) walls[cx * 64 + i][cy * 64 + 64] = 0;
+                }
+            }
+
+            // Within Chunk
+            for (int i = 0; i < doorFreq; i++) {
+                int x = 1, y = 1;
+                while(walls[x][y] == 0) {
+                    x = rand() % 62 + 1 + 64 * cx;
+                    y = rand() % 62 + 1 + 64 * cy;
+                }
+                walls[x][y] = 0;
+            }
+        }
+    }
+
+    drawText(64, 16, "Saving Map.", sf::Color::White);
+    updateScreen();
+
+    // Save Map
+
+    for (int cx = 0; cx < mapSize; cx++) {
+        for (int cy = 0; cy < mapSize; cy++) {
+            if (showDebugInfo) cout << "\n     Chunk (" << cx << ", " << cy << ").";
+
+            stringstream filename;
+            filename << "Tiles/Map_" << cx << "_" << cy << ".txt";
+
+            ofstream file;
+            file.open(filename.str());
+            file << "tileswide 32\ntileshigh 32\ntilewidth 16\ntileheight 16\n\nlayer 0\n";
+            for (int y = 0; y < 64; y++) {
+                for (int x = 0; x < 64; x++) {
+                    file << walls[64 * cx + x][64 * cy + y] << ",";
+                }
+                file << "\n";
+            }
+        }
+    }
+
+    screen++;
 }
 
 // Game Screens
