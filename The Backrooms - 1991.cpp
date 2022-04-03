@@ -336,9 +336,7 @@ void readInput() {
     if(inputTimer > 0) {
         inputTimer -= frameTime;
     }
-    else {
-        inputTimer = 0;
-    }
+    else inputTimer = 0;
 
     // Keyboard
     {
