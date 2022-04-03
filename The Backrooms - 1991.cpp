@@ -4,6 +4,9 @@
 #include <fstream>
 #include <sstream>
 #include <array>
+#include <time.h> // used to seed RNG
+#include <stdlib.h> // for rand function
+
 using namespace std;
 
 #include <SFML/Graphics.hpp>
@@ -75,9 +78,11 @@ void movePlayer(float speed);
 void movePlayer();
 
 void updateFrameTime();
+void updateScreen();
 
 // Game Functions
 void drawHighlightBox(int x, int y, int width);
+void generateMap();
 
 // Game Screens
 void TitleScreen();
@@ -131,6 +136,9 @@ int main() {
     loadControlMap();
     loadGfxSettings();
 
+    // Setup RNG
+    srand(time(NULL));
+
     while(window.isOpen()) {
         // System window management
         sf::Event event;
@@ -157,7 +165,7 @@ int main() {
         case 1: MainMenu(); break;
 
             // Game setup
-        case 2: screen = 10; break;
+        case 2: generateMap(); break;
 
             // Gameplay
         case 10:
@@ -177,33 +185,7 @@ int main() {
             drawText(0, 16, "Screen: " + to_string(screen), sf::Color::Cyan);
         }
 
-        // Framerate counter
-        if (showDebugInfo) {
-            sf::Color fpsCol;
-            sf::RectangleShape fpsBg(sf::Vector2f(92, 16));
-            sf::Vector2f fpsStart(207.f - 8 * (currentFrameRate > 99) - 8 * (currentFrameRate > 999), 0.f);
-
-            if (currentFrameRate > 1.05 * maxFrameRate) fpsCol = sf::Color::Cyan;
-            else if (currentFrameRate > 0.95 * maxFrameRate) fpsCol = sf::Color::Green;
-            else if (currentFrameRate > 0.9 * maxFrameRate) fpsCol = sf::Color::Yellow;
-            else if (currentFrameRate > 0.8 * maxFrameRate) fpsCol = sf::Color(255, 127, 0);
-            else fpsCol = sf::Color::Red;
-
-            fpsBg.setFillColor(sf::Color(0, 0, 0, 127));
-            fpsBg.setPosition(fpsStart);
-
-            buffer.draw(fpsBg);
-            drawText(fpsStart.x, fpsStart.y, to_string((int)currentFrameRate) + " FPS", fpsCol);
-        }
-
-        // Update graphics
-        buffer.display();
-        bufferObj.setTexture(buffer.getTexture());
-        window.draw(bufferObj);
-        if (showScanlines) window.draw(scanlineObj);
-        window.display();
-        window.clear(sf::Color::Black);
-        buffer.clear();
+        updateScreen();
     }
 
     cout << "\n\n\nThank you for playing!\n\n\n";
@@ -643,6 +625,35 @@ void updateFrameTime() {
 
     if ((int)(frameCount * frameScl) % 10 == 0) currentFrameRate = 1000 / frameTime;
 }
+void updateScreen() {
+    // Framerate counter
+    if (showDebugInfo) {
+        sf::Color fpsCol;
+        sf::RectangleShape fpsBg(sf::Vector2f(92, 16));
+        sf::Vector2f fpsStart(207.f - 8 * (currentFrameRate > 99) - 8 * (currentFrameRate > 999), 0.f);
+
+        if (currentFrameRate > 1.05 * maxFrameRate) fpsCol = sf::Color::Cyan;
+        else if (currentFrameRate > 0.95 * maxFrameRate) fpsCol = sf::Color::Green;
+        else if (currentFrameRate > 0.9 * maxFrameRate) fpsCol = sf::Color::Yellow;
+        else if (currentFrameRate > 0.8 * maxFrameRate) fpsCol = sf::Color(255, 127, 0);
+        else fpsCol = sf::Color::Red;
+
+        fpsBg.setFillColor(sf::Color(0, 0, 0, 127));
+        fpsBg.setPosition(fpsStart);
+
+        buffer.draw(fpsBg);
+        drawText(fpsStart.x, fpsStart.y, to_string((int)currentFrameRate) + " FPS", fpsCol);
+    }
+
+    // Update graphics
+    buffer.display();
+    bufferObj.setTexture(buffer.getTexture());
+    window.draw(bufferObj);
+    if (showScanlines) window.draw(scanlineObj);
+    window.display();
+    window.clear(sf::Color::Black);
+    buffer.clear();
+}
 
 // Game Functions
 void drawHighlightBox(int x, int y, int width) {
@@ -665,6 +676,40 @@ void drawHighlightBox(int x, int y, int width) {
         tile.setPosition((x + width) * 16.f,(y + row) * 16.f);
         buffer.draw(tile);
     }
+}
+void generateMap() {
+    if (showDebugInfo) cout << "\n Setting up map generation.";
+    const int sizeX = 256, sizeY = 224;
+    int walls[sizeX][sizeY];
+    sf::RectangleShape pxl(sf::Vector2f(1.f, 1.f));
+    int pxlVal;
+    for (int x = 0; x < sizeX; x++) {
+        for (int y = 0; y < sizeY; y++) {
+            walls[x][y] = 0;
+        }
+    }
+
+    if (showDebugInfo) cout << "\n Generating map layout.";
+    for (int i = 0; i < sizeX; i++) {
+        walls[i][0] = 16;
+    }
+
+    if (showDebugInfo) cout << "\n Rendering map preview.";
+    for (int x = 0; x < sizeX; x++) {
+        for (int y = 0; y < sizeY; y++) {
+            pxlVal = walls[x][y];
+
+            if (pxlVal == 0) pxl.setFillColor(sf::Color::Black);
+            else pxl.setFillColor(sf::Color::White);
+            pxl.setPosition(x, y);
+
+            buffer.draw(pxl);
+        }
+    }
+    updateScreen();
+
+    sf::sleep(sf::seconds(10));
+    window.close();
 }
 
 // Game Screens
