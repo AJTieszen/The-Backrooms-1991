@@ -9,6 +9,8 @@
 
 using namespace std;
 
+#include <filesystem>
+namespace fs = std::filesystem;
 #include <SFML/Graphics.hpp>
 
 // Game variables
@@ -785,13 +787,14 @@ void generateMap() {
     updateScreen();
 
     // Save Map
+    fs::create_directory("Map");
 
     for (int cx = 0; cx < mapSize; cx++) {
         for (int cy = 0; cy < mapSize; cy++) {
             if (showDebugInfo) cout << "\n     Chunk (" << cx << ", " << cy << ").";
 
             stringstream filename;
-            filename << "Tiles/Map_" << cx << "_" << cy << ".txt";
+            filename << "Map/Map_" << cx << "_" << cy << ".txt";
 
             ofstream file;
             file.open(filename.str());
@@ -805,7 +808,7 @@ void generateMap() {
         }
     }
 
-    screen++;
+    screen = 9;
 }
 
 // Game Screens
