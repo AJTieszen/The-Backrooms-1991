@@ -14,7 +14,7 @@ namespace fs = std::filesystem;
 #include <SFML/Graphics.hpp>
 
 // Game variables
-sf::Vector2f screenPos[4], playerPos;
+sf::Vector2f screenPos[4], playerPos(20.f, 20.f);
 const sf::Vector2f playerOffset(-8.f, -24.f);
 
 float speed;
@@ -23,9 +23,9 @@ float speed;
 const string title = "The Backrooms: 1991";
 bool showDebugInfo = false, toggleDebugInfo = false;
 
-const int solidWallId = 16, wallDensity = 30;
+const int solidWallId = 16, wallDensity = 60;
 int mapSize = 3; // number of 64x64 chunks
-int doorFreq = 40; // number of doors to create within a chunk
+int doorFreq = 140; // number of doors to create within a chunk
 int chunkDoorRarity = 30; // Determines hiow few doors generate between chunks. Larger number = less doors on average.
 int wallLengthVariance = 40, wallLengthMin = 24;
 
@@ -172,7 +172,12 @@ int main() {
         case 1: MainMenu(); break;
 
             // Game setup
-        case 2: generateMap(); break;
+        case 2:
+            generateMap();
+            loadTilemap("Map/Map_0_1.txt");
+            screen = 10;
+
+            break;
 
             // Gameplay
         case 10:
@@ -282,7 +287,8 @@ void loadTilemap(string filename, int layer) {
 
     ifstream file(filename);
 
-    if (file.is_open()) {
+    //if (file.is_open()) {
+     {
         // get tilemap width
         getline(file, line, ' ');
         if (line != "tileswide") cout << "\nWarning: Unexpected tilemap format.";
@@ -308,7 +314,7 @@ void loadTilemap(string filename, int layer) {
 
         file.close();
     }
-    else cout << "\nUnable to open tilemap: " << filename;
+    //else cout << "\nUnable to open tilemap: " << filename;
 }
 void loadTilemap(string filename) {
     loadTilemap(filename, 0);
@@ -798,7 +804,7 @@ void generateMap() {
 
             ofstream file;
             file.open(filename.str());
-            file << "tileswide 32\ntileshigh 32\ntilewidth 16\ntileheight 16\n\nlayer 0\n";
+            file << "tileswide 64\ntileshigh 64\ntilewidth 16\ntileheight 16\n\nlayer 0\n";
             for (int y = 0; y < 64; y++) {
                 for (int x = 0; x < 64; x++) {
                     file << walls[64 * cx + x][64 * cy + y] << ",";
@@ -807,8 +813,6 @@ void generateMap() {
             }
         }
     }
-
-    screen = 9;
 }
 
 // Game Screens
@@ -847,7 +851,6 @@ void MainMenu() {
         switch (selection) {
         case 0:
             screen++;
-            loadTilemap("Tiles/Collision Test.txt");
             while (tilemap[0][(int)playerPos.x / 16][(int)playerPos.y / 16] >= solidWallId) {
                 playerPos.x += 16;
                 playerPos.y += 16;
