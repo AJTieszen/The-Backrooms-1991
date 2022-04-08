@@ -19,26 +19,28 @@ const sf::Vector2f playerOffset(-8.f, -24.f);
 
 float speed;
 
-// Startup settings & defaults
-const string title = "The Backrooms: 1991";
-bool showDebugInfo = false, toggleDebugInfo = false;
-
+// Map Generation Settinfs
 const int solidWallId = 16, wallDensity = 60;
 int mapSize = 3; // number of 64x64 chunks
 int doorFreq = 140; // number of doors to create within a chunk
 int chunkDoorRarity = 30; // Determines hiow few doors generate between chunks. Larger number = less doors on average.
 int wallLengthVariance = 40, wallLengthMin = 24;
 
+// Startup settings & defaults
+const string title = "The Backrooms: 1991";
+bool showDebugInfo = false, toggleDebugInfo = false;
+
 enum keys { up, dn, lt, rt, start, slct, a, b, x, y, lb, rb};
 int ctrlMap[] = {-1, -1, 1, -1, 7, 6, 0, 1, 2, 3, 4, 5}; // jst y inv, jst x inv, dpad x inv, dpad y inv, start, slct, a, b, x, y, lb, rb
 
-int scale = 200, aspectRatio = 0, maxFrameRate = 0, frameRateIndex = 0, frameCount = 0;
+int scale = 200, aspectRatio = 0, maxFrameRate = 0, frameRateIndex = 0;
 bool showScanlines, blur;
 const int stdFrameRate[] = { 0, 30, 60, 75, 120, 144, 240, 360, 0 }; // 0 = V-Sync
 
 // State data
-int screen, inputTimer, selection = 0, mappedButtons = 0;
-float frameScl, frameTime, currentFrameRate; // Normalize for 60 fps
+int screen, inputTimer, selection = 0, mappedButtons = 0, frameCount = 0, frUpdateCount = 0;
+float frameTime, avgFrameTime, currentFrameRate, frUpdate;
+float frameScl; // Normalize for 60 fps
 bool pressed[12]; // up, dn, lt, rt, start, select, a, b, x, y, lb, rb
 
 // Global SFML & graphics objects
@@ -632,11 +634,20 @@ void updateFrameTime() {
     clk.restart();
 
     frameTime = frametime.asMicroseconds() / 1000.f;
+    avgFrameTime += frameTime;
     frameScl = frameTime / 16.6667;
-
     frameCount++;
+    frUpdateCount++;
+    frUpdate += frameScl;
 
-    if ((int)(frameCount * frameScl) % 10 == 0) currentFrameRate = 1000 / frameTime;
+    if (frUpdate >= 10) {
+        avgFrameTime /= frUpdateCount;
+        currentFrameRate = 1000 / avgFrameTime;
+
+        avgFrameTime = 0;
+        frUpdate = 0;
+        frUpdateCount = 0;
+    }
 }
 void updateScreen() {
     // Framerate counter
