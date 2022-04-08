@@ -6,15 +6,15 @@ Use your wits and whatever you find to survive and escape the backrooms. Good lu
 
 # Controls:
 
-| <p align = center> Keyboard      | <p align = center> Controller        | <p align = center> Menus         | <p align = center> Gameplay              |
-|----------------------------------|--------------------------------------|----------------------------------|------------------------------------------|
-| <p align = center> arrows, WASD  | <p align = center> D-Pad, Joystick   | <p align = center> move cursor   | <p align = center> move character        |
-| <p align = center> ENTER         | <p align = center> Start             | <p align = center> select option | <p align = center> pause game (no menu)  |
-| <p align = center> ESC           | <p align = center> Select            |                                  | <p align = center> access pause menu     |
-| <p align = center> E             | <p align = center> A                 | <p align = center> select option | <p align = center> interact              |
-| <p align = center> R             | <p align = center> B                 | <p align = center> close menu    | <p align = center> run                   |
-| <p align = center> Q             | <p align = center> X                 |                                  | <p align = center> inventory             |
-| <p align = center> F             | <p align = center> Y                 |                                  | <p align = center> attack, use item      |
+|    Controller   |   Keyboard   |      Gameplay     |      Menus      |
+|:---------------:|:------------:|:-----------------:|:---------------:|
+| D-Pad, Joystick | arrows, WASD |        move       |   move cursor   |
+|      Start      |     ENTER    |     pause game    |  select option  |
+|      Select     |      ESC     |     pause menu    |       ---       |
+|        A        |       E      |      interact     |  select option  |
+|        B        |       Q      |        run        | close (sub)menu |
+|        X        |       R      |     inventory     |       ---       |
+|        Y        |       F      | attack (use item) |       ---       |
 
 # File structure:
 (Starting at program's "root" directory (x64/release/); these are duplicated to the project directory for debugging.
