@@ -21,7 +21,7 @@ float speed;
 
 // Map Generation Settinfs
 const int solidWallId = 16, wallDensity = 60;
-int mapSize = 3; // number of 64x64 chunks
+int mapSize = 7; // number of 64x64 chunks per axis. Use odd number for symmetric maps.
 int doorFreq = 140; // number of doors to create within a chunk
 int chunkDoorRarity = 30; // Determines hiow few doors generate between chunks. Larger number = less doors on average.
 int wallLengthVariance = 40, wallLengthMin = 24;
@@ -35,7 +35,7 @@ int ctrlMap[] = {-1, -1, 1, -1, 7, 6, 0, 1, 2, 3, 4, 5}; // jst y inv, jst x inv
 
 int scale = 200, aspectRatio = 0, maxFrameRate = 0, frameRateIndex = 0;
 bool showScanlines, blur;
-const int stdFrameRate[] = { 0, 30, 60, 75, 120, 144, 240, 360, 0 }; // 0 = V-Sync
+const int stdFrameRate[] = { 0, 30, 60, 75, 120, 144, 240, 360, 0}; // 0 = V-Sync
 
 // State data
 int screen, inputTimer, selection = 0, mappedButtons = 0, frameCount = 0, frUpdateCount = 0;
@@ -88,6 +88,7 @@ void movePlayer();
 
 void updateFrameTime();
 void updateScreen();
+void update();
 
 // Game Functions
 void drawHighlightBox(int x, int y, int width);
@@ -114,6 +115,7 @@ int main() {
     window.setFramerateLimit(maxFrameRate);
     buffer.create(256, 224);
     bufferObj.setScale(2.f, 2.f);
+    window.setMouseCursorVisible(false);
 
     if(showDebugInfo) cout << "done.";
 
@@ -165,8 +167,7 @@ int main() {
             toggleDebugInfo = true;
         } else toggleDebugInfo = false;
 
-        // Game logc
-        readInput();
+        // Game logic
 
         switch(screen) {
             // Main menu
@@ -199,7 +200,7 @@ int main() {
             drawText(0, 16, "Screen: " + to_string(screen), sf::Color::Cyan);
         }
 
-        updateScreen();
+        update();
     }
 
     cout << "\n\n\nThank you for playing!\n\n\n";
@@ -329,7 +330,6 @@ void readInput() {
     }
 
     // Handle multi-frame input blocking
-    updateFrameTime();
     if(inputTimer > 0) {
         inputTimer -= frameTime;
     }
@@ -349,9 +349,9 @@ void readInput() {
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::E))
             pressed[a] = true;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Q))
-            pressed[x] = true;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::R))
             pressed[b] = true;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::R))
+            pressed[x] = true;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::F))
             pressed[y] = true;
 
@@ -676,6 +676,11 @@ void updateScreen() {
     if (showScanlines) window.draw(scanlineObj);
     window.display();
     window.clear(sf::Color::Black);
+}
+void update() {
+    readInput();
+    updateFrameTime();
+    updateScreen();
     buffer.clear();
 }
 
@@ -702,17 +707,24 @@ void drawHighlightBox(int x, int y, int width) {
     }
 }
 void generateMap() {
-    // Generate Map
-    drawText(64, 16, "Preparing to generate map...", sf::Color::White);
-    updateScreen();
-
+    // Prepare to Display Text From File
+    string line;
+    ifstream file("Text/MapGen.txt");
+    
+    // Preparing to generate map
+    getline(file, line);
+    drawText(128 - line.length() * 4, 16, line, sf::Color::White);
+    update();
     sf::RectangleShape pxl(sf::Vector2f(1.f, 1.f));
     int pxlVal, n;
 
     vector<vector<int>> walls(mapSize * 64, vector<int>(mapSize * 64, 0));
+    sf::sleep(sf::milliseconds(250));
 
-    drawText(64, 16, "Building Walls...", sf::Color::White);
-    updateScreen();
+    // Building walls
+    getline(file, line);
+    drawText(128 - line.length() * 4, 16, line, sf::Color::White);
+    update();
     for (int cx = 0; cx < mapSize; cx ++) {
         for (int cy = 0; cy < mapSize; cy++) {
             if (showDebugInfo) cout << "\n     Chunk (" << cx << ", " << cy << ").";
@@ -753,9 +765,12 @@ void generateMap() {
             }
         }
     }
+    sf::sleep(sf::milliseconds(250));
 
-    drawText(64, 16, "Cutting out doors...", sf::Color::White);
-    updateScreen;
+    // Cutting out doors
+    getline(file, line);
+    drawText(128 - line.length() * 4, 16, line, sf::Color::White);
+    update();
     for (int cx = 0; cx < mapSize; cx++) {
         for (int cy = 0; cy < mapSize; cy ++) {
             if (showDebugInfo) cout << "\n     Chunk (" << cx << ", " << cy << ").";
@@ -799,11 +814,12 @@ void generateMap() {
             }
         }
     }
+    sf::sleep(sf::milliseconds(250));
 
-    drawText(64, 16, "Saving Map.", sf::Color::White);
-    updateScreen();
-
-    // Save Map
+    // Saving map
+    getline(file, line);
+    drawText(128 - line.length() * 4, 16, line, sf::Color::White);
+    update();
     fs::create_directory("Map");
 
     for (int cx = 0; cx < mapSize; cx++) {
@@ -824,6 +840,9 @@ void generateMap() {
             }
         }
     }
+    sf::sleep(sf::milliseconds(250));
+
+    file.close();
 }
 
 // Game Screens
