@@ -16,6 +16,7 @@ namespace fs = std::filesystem;
 // Game variables
 sf::Vector2f screenPos[4], playerPos(20.f, 20.f);
 const sf::Vector2f playerOffset(-8.f, -24.f);
+sf::Vector2i chunk;
 
 float speed;
 
@@ -42,6 +43,9 @@ int screen, inputTimer, selection = 0, mappedButtons = 0, frameCount = 0, frUpda
 float frameTime, avgFrameTime, currentFrameRate, frUpdate;
 float frameScl; // Normalize for 60 fps
 bool pressed[12]; // up, dn, lt, rt, start, select, a, b, x, y, lb, rb
+
+// Developer Settings
+bool noClip = false;
 
 // Global SFML & graphics objects
 sf::Clock clk;
@@ -93,6 +97,7 @@ void update();
 // Game Functions
 void drawHighlightBox(int x, int y, int width);
 void generateMap();
+void loadMapChunk(sf::Vector2i chunk);
 
 // Game Screens
 void TitleScreen();
@@ -177,7 +182,8 @@ int main() {
             // Game setup
         case 2:
             generateMap();
-            loadTilemap("Map/Map_0_1.txt");
+            chunk.x = chunk.y = mapSize / 2;
+            loadMapChunk(chunk);
             screen = 10;
 
             break;
@@ -204,6 +210,8 @@ int main() {
     }
 
     cout << "\n\n\nThank you for playing!\n\n\n";
+
+    sf::sleep(sf::seconds(5));
 }
 
 
@@ -586,10 +594,10 @@ void movePlayer(float speed, int layer) {
     const int strictness = 5;
     int gridPosX = playerPos.x / 16;
     int gridPosY = playerPos.y / 16;
-    bool clrUp, clrDn, clrLt, clrRt;
+    bool clrUp = true, clrDn = true, clrLt = true, clrRt = true;
 
     // check if path is clear
-    {
+    if (!noClip) {
         clrUp = (tilemap[layer][(int)(playerPos.x + strictness - 1) / 16][(int)(playerPos.y - strictness) / 16] < solidWallId)
             && (tilemap[layer][(int)(playerPos.x - strictness + 1) / 16][(int)(playerPos.y - strictness) / 16] < solidWallId);
         clrDn = (tilemap[layer][(int)(playerPos.x + strictness - 1) / 16][(int)(playerPos.y + strictness) / 16] < solidWallId)
@@ -607,7 +615,7 @@ void movePlayer(float speed, int layer) {
     if (pressed[rt] && clrRt) playerPos.x += speed * frameScl;
 
     // push character out of wall
-    {
+    if (!noClip) {
         if ((tilemap[layer][(int)(playerPos.x + strictness) / 16][(int)(playerPos.y - 8) / 16] >= solidWallId)
             || (tilemap[layer][(int)(playerPos.x - strictness) / 16][(int)(playerPos.y - 8) / 16] >= solidWallId))
             playerPos.y = gridPosY * 16 + 8;
@@ -824,7 +832,7 @@ void generateMap() {
 
     for (int cx = 0; cx < mapSize; cx++) {
         for (int cy = 0; cy < mapSize; cy++) {
-            if (showDebugInfo) cout << "\n     Chunk (" << cx << ", " << cy << ").";
+            if (showDebugInfo) cout << "\nSaving Chunk (" << cx << ", " << cy << ").";
 
             stringstream filename;
             filename << "Map/Map_" << cx << "_" << cy << ".txt";
@@ -843,6 +851,12 @@ void generateMap() {
     sf::sleep(sf::milliseconds(250));
 
     file.close();
+}
+void loadMapChunk(sf::Vector2i chunk) {
+    if (showDebugInfo) cout << "\nLoading Chunk: (" << chunk.x << ", " << chunk.y << ")";
+    stringstream filename;
+    filename << "Map/Map_" << chunk.x << "_" << chunk.y << ".txt";
+    loadTilemap(filename.str());
 }
 
 // Game Screens
@@ -1133,18 +1147,71 @@ void GfxSettings() {
 }
 void mainGame()
 {
+    // Move player
     if (pressed[b]) speed = 2.5;
     else speed = 1;
     movePlayer(speed);
 
-    drawTilemapScroll(walls);
-    playerObj.setPosition(playerPos + playerOffset - screenPos[0]);
-    buffer.draw(playerObj);
-
+    // Scroll screen
     if (playerObj.getPosition().x > 192) screenPos[0].x += speed * frameScl;
     if (playerObj.getPosition().x < 64) screenPos[0].x -= speed * frameScl;
     if (playerObj.getPosition().y > 144) screenPos[0].y += speed * frameScl;
     if (playerObj.getPosition().y < 64) screenPos[0].y -= speed * frameScl;
+
+    // Load chunk upon reaching map's edge
+    if (playerPos.x <= 0.f) {
+        chunk.x--;
+        if (chunk.x < 0) {
+            cout << "\n\n\nCongratulations! You escaped the Backrooms!";
+            window.close();
+        }
+        else {
+            loadMapChunk(chunk);
+            playerPos.x = 1023;
+            screenPos[0].x += 1023;
+        }
+    }
+    if (playerPos.x >= 1024.f) {
+        chunk.x++;
+        if (chunk.x >= mapSize) {
+            cout << "\n\n\nCongratulations! You escaped the Backrooms!";
+            window.close();
+        }
+        else {
+            loadMapChunk(chunk);
+            playerPos.x = 1;
+            screenPos[0].x -= 1023;
+        }
+    }
+    if (playerPos.y <= 0.f) {
+        chunk.y--;
+        if (chunk.y < 0) {
+            cout << "\n\n\nCongratulations! You escaped the Backrooms!";
+            window.close();
+        }
+        else {
+            loadMapChunk(chunk);
+            playerPos.y = 1023;
+            screenPos[0].y += 1023;
+        }
+    }
+    if (playerPos.y >= 1024.f) {
+        chunk.y++;
+        if (chunk.y >= mapSize) {
+            cout << "\n\n\nCongratulations! You escaped the Backrooms!";
+            window.close();
+        }
+        else {
+            loadMapChunk(chunk);
+            playerPos.y = 1;
+            screenPos[0].y -= 1023;
+        }
+    }
+
+    // Render graphics
+    drawTilemapScroll(walls);
+    playerObj.setPosition(playerPos + playerOffset - screenPos[0]);
+    buffer.draw(playerObj);
 }
 
 // Screen effects
