@@ -1151,6 +1151,7 @@ void mainGame()
     if (pressed[b]) speed = 2.5;
     else speed = 1;
     movePlayer(speed);
+    cout << "\n" << playerPos.y;
 
     // Scroll screen
     if (playerObj.getPosition().x > 192) screenPos[0].x += speed * frameScl;
@@ -1159,7 +1160,7 @@ void mainGame()
     if (playerObj.getPosition().y < 64) screenPos[0].y -= speed * frameScl;
 
     // Load chunk upon reaching map's edge
-    if (playerPos.x <= 0.f) {
+    if (playerPos.x <= 8.f) {
         chunk.x--;
         if (chunk.x < 0) {
             cout << "\n\n\nCongratulations! You escaped the Backrooms!";
@@ -1167,11 +1168,11 @@ void mainGame()
         }
         else {
             loadMapChunk(chunk);
-            playerPos.x = 1023;
-            screenPos[0].x += 1023;
+            playerPos.x = 1015;
+            screenPos[0].x += 1015;
         }
     }
-    if (playerPos.x >= 1024.f) {
+    if (playerPos.x >= 1016.f) {
         chunk.x++;
         if (chunk.x >= mapSize) {
             cout << "\n\n\nCongratulations! You escaped the Backrooms!";
@@ -1179,11 +1180,11 @@ void mainGame()
         }
         else {
             loadMapChunk(chunk);
-            playerPos.x = 1;
-            screenPos[0].x -= 1023;
+            playerPos.x = 9;
+            screenPos[0].x -= 1015;
         }
     }
-    if (playerPos.y <= 0.f) {
+    if (playerPos.y <= 8.f) {
         chunk.y--;
         if (chunk.y < 0) {
             cout << "\n\n\nCongratulations! You escaped the Backrooms!";
@@ -1191,11 +1192,11 @@ void mainGame()
         }
         else {
             loadMapChunk(chunk);
-            playerPos.y = 1023;
-            screenPos[0].y += 1023;
+            playerPos.y = 1015;
+            screenPos[0].y += 1015;
         }
     }
-    if (playerPos.y >= 1024.f) {
+    if (playerPos.y >= 1016.f) {
         chunk.y++;
         if (chunk.y >= mapSize) {
             cout << "\n\n\nCongratulations! You escaped the Backrooms!";
@@ -1203,8 +1204,8 @@ void mainGame()
         }
         else {
             loadMapChunk(chunk);
-            playerPos.y = 1;
-            screenPos[0].y -= 1023;
+            playerPos.y = 9;
+            screenPos[0].y -= 1015;
         }
     }
 
