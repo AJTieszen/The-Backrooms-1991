@@ -1151,7 +1151,6 @@ void mainGame()
     if (pressed[b]) speed = 2.5;
     else speed = 1;
     movePlayer(speed);
-    cout << "\n" << playerPos.y;
 
     // Scroll screen
     if (playerObj.getPosition().x > 192) screenPos[0].x += speed * frameScl;
