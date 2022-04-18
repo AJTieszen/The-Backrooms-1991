@@ -1149,10 +1149,30 @@ void GfxSettings() {
     }
 }
 void gameSettings(){
+    string line;
+    ifstream file("Text/Game Setup.txt");
+
+    // Check Map Existence
     bool mapExists = false;
     if (fs::exists("Map/Map_0_0.txt")) mapExists = false;
+    
+    // Draw Text
+    getline(file, line);
+    if (mapExists) {
+        drawText(40, 32, line, sf::Color::White);
+        getline(file, line);
+    } else {
+        getline(file, line);
+        drawText(40, 32, line, sf::Color::White);
+    }
 
+    for (int i = 0; i < 4; i++) {
+        getline(file, line);
+        drawText(40, 80 + 16 * i, line, sf::Color::White);
+    }
 
+    getline(file, line);
+    drawText(40, 176, line, sf::Color::White);
 }
 void introText() {
     stringstream filename;

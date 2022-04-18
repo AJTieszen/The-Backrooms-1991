@@ -1,0 +1,7 @@
+Load Game
+Generate a map first!
+Map Size:
+Map Density:
+Map Difficulty:
+Customize Difficulty
+Generate map!
