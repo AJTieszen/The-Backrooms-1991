@@ -39,7 +39,7 @@ bool showScanlines, blur;
 const int stdFrameRate[] = { 0, 30, 60, 75, 120, 144, 240, 360, 0}; // 0 = V-Sync
 
 // State data
-int screen, inputTimer, selection = 0, mappedButtons = 0, frameCount = 0, frUpdateCount = 0;
+int screen, textPhase = 1, inputTimer, selection = 0, mappedButtons = 0, frameCount = 0, frUpdateCount = 0;
 float frameTime, avgFrameTime, currentFrameRate, frUpdate;
 float frameScl; // Normalize for 60 fps
 bool pressed[12]; // up, dn, lt, rt, start, select, a, b, x, y, lb, rb
@@ -104,6 +104,8 @@ void TitleScreen();
 void MainMenu();
 void Controls();
 void GfxSettings();
+void gameSettings();
+void introText();
 void mainGame();
 
 // Screen Effects
@@ -180,7 +182,9 @@ int main() {
         case 1: MainMenu(); break;
 
             // Game setup
-        case 2:
+        case 2: gameSettings(); break;
+        case 3: introText(); break;
+        case 4:
             generateMap();
             chunk.x = chunk.y = mapSize / 2;
             loadMapChunk(chunk);
@@ -189,8 +193,7 @@ int main() {
             break;
 
             // Gameplay
-        case 10:
-            mainGame(); break;
+        case 10: mainGame(); break;
             
             // Controls
         case -1: Controls(); break;
@@ -1143,6 +1146,41 @@ void GfxSettings() {
         buffer.draw(toggle);
         toggle.setPosition(160.f + 14 * blur, 160);
         buffer.draw(toggle);
+    }
+}
+void gameSettings(){
+    bool mapExists = false;
+    if (fs::exists("Map/Map_0_0.txt")) mapExists = false;
+
+
+}
+void introText() {
+    stringstream filename;
+    string line;
+    int lineX, lineY;
+
+    filename << "Text/Intro Text p" << textPhase << ".txt";
+    ifstream file(filename.str());
+
+    if (textPhase == 1) {
+        lineX = 8;
+        lineY = 8;
+    }
+    else {
+        lineX = 0;
+        lineY = 64;
+    }
+
+    while (getline(file, line)) {
+        if (textPhase == 2) lineX = 128 - 4 * line.length();
+        drawText(lineX, lineY, line, sf::Color::White);
+        lineY += 16;
+    }
+
+    if ((pressed[start] || pressed[a]) && inputTimer == 0) {
+        textPhase++;
+        inputTimer = 250;
+        if (textPhase == 3) screen++;
     }
 }
 void mainGame()
