@@ -13,23 +13,26 @@ using namespace std;
 namespace fs = std::filesystem;
 #include <SFML/Graphics.hpp>
 
+// Developer Settings
+bool noClip = true;
+
 // Game variables
-sf::Vector2f screenPos[4], playerPos(20.f, 20.f);
+sf::Vector2f screenPos[4], playerPos(512.f, 512.f);
 const sf::Vector2f playerOffset(-8.f, -24.f);
 sf::Vector2i chunk;
 
 float speed;
 
-// Map Generation Settinfs
-const int solidWallId = 16, wallDensity = 60;
+// Map Generation Settings
+int mapSettings[3];
+const int solidWallId = 16;
 int mapSize = 7; // number of 64x64 chunks per axis. Use odd number for symmetric maps.
-int doorFreq = 140; // number of doors to create within a chunk
-int chunkDoorRarity = 30; // Determines hiow few doors generate between chunks. Larger number = less doors on average.
-int wallLengthVariance = 40, wallLengthMin = 24;
+int mapDensity = 20; // number of rectangular rooms per chunk
+int doorFreq = 15; // percent chance of a door generating at a given position
 
 // Startup settings & defaults
 const string title = "The Backrooms: 1991";
-bool showDebugInfo = false, toggleDebugInfo = false;
+bool showDebugInfo = false, toggleDebugInfo = false, wallDensity = 60;
 
 enum keys { up, dn, lt, rt, start, slct, a, b, x, y, lb, rb};
 int ctrlMap[] = {-1, -1, 1, -1, 7, 6, 0, 1, 2, 3, 4, 5}; // jst y inv, jst x inv, dpad x inv, dpad y inv, start, slct, a, b, x, y, lb, rb
@@ -43,9 +46,6 @@ int screen, textPhase = 1, inputTimer, selection = 0, mappedButtons = 0, frameCo
 float frameTime, avgFrameTime, currentFrameRate, frUpdate;
 float frameScl; // Normalize for 60 fps
 bool pressed[12]; // up, dn, lt, rt, start, select, a, b, x, y, lb, rb
-
-// Developer Settings
-bool noClip = false;
 
 // Global SFML & graphics objects
 sf::Clock clk;
@@ -183,14 +183,7 @@ int main() {
 
             // Game setup
         case 2: gameSettings(); break;
-        case 3: introText(); break;
-        case 4:
-            generateMap();
-            chunk.x = chunk.y = mapSize / 2;
-            loadMapChunk(chunk);
-            screen = 10;
-
-            break;
+        case 9: introText(); break;
 
             // Gameplay
         case 10: mainGame(); break;
@@ -215,6 +208,8 @@ int main() {
     cout << "\n\n\nThank you for playing!\n\n\n";
 
     sf::sleep(sf::seconds(5));
+
+    return 0;
 }
 
 
@@ -723,14 +718,14 @@ void generateMap() {
     ifstream file("Text/MapGen.txt");
     
     // Preparing to generate map
+    buffer.clear(sf::Color::Black);
     getline(file, line);
     drawText(128 - line.length() * 4, 16, line, sf::Color::White);
     update();
-    sf::RectangleShape pxl(sf::Vector2f(1.f, 1.f));
-    int pxlVal, n;
 
     vector<vector<int>> walls(mapSize * 64, vector<int>(mapSize * 64, 0));
-    sf::sleep(sf::milliseconds(250));
+    
+    int x1, y1, x2, y2, tmp;
 
     // Building walls
     getline(file, line);
@@ -749,83 +744,89 @@ void generateMap() {
             }
 
             // Interior Walls
-            for (int i = 0; i < wallDensity; i++) {
-                int x = (rand() % 16) * 4 + 64 * cx;
-                int y = (rand() % 16) * 4 + 64 * cy;
-                int l = rand() % wallLengthVariance + wallLengthMin;
-                int d = rand() % 4;
+            for (int i = 0; i < mapDensity; i++) {
+                x1 = rand() % 22 * 3;
+                y1 = rand() % 22 * 3;
+                x2 = rand() % 22 * 3;
+                y2 = rand() % 22 * 3;
 
-                for (int j = 0; j < l; j++) {
-                    switch (d) {
-                    case 0:
-                        if (x + j < 64) walls[x + j][y] = 16;
-                        break;
-                    case 1:
-                        if (y + j < 64) walls[x][y + j] = 16;
-                        break;
-                    case 2:
-                        if (x - j > 0) walls[x - j][y] = 16;
-                        break;
-                    case 3:
-                        if (y - j > 0) walls[x][y - j] = 16;
-                        break;
-                    default:
-                        walls[x][y] = 16;
+                if (x1 > x2) {
+                    tmp = x2;
+                    x2 = x1;
+                    x1 = tmp;
+                }
+                if (y1 > y2) {
+                    tmp = y2;
+                    y2 = y1;
+                    y1 = tmp;
+                }
+
+                for (int x = x1; x <= x2; x++) {
+                    walls[x + 64 * cx][y1 + 64 * cy] = 16;
+                    walls[x + 64 * cx][y2 + 64 * cy] = 16;
+                }
+                for (int y = y1; y <= y2; y++) {
+                    walls[x1 + 64 * cx][y + 64 * cy] = 16;
+                    walls[x2 + 64 * cx][y + 64 * cy] = 16;
+                }
+            }
+        }
+    }
+
+    // Cutting doorways
+    getline(file, line);
+    drawText(128 - line.length() * 4, 16, line, sf::Color::White);
+    update();
+    for (int cx = 0; cx <= mapSize; cx++) {
+        for (int cy = 0; cy <= mapSize; cy++) {
+            if (showDebugInfo) cout << "\n     Chunk (" << cx << ", " << cy << ").";
+
+            // Perimeter Walls
+            for (int i = 0; i < 21; i++) {
+                // top and bottom
+                if (rand() % 100 < doorFreq && cx < mapSize) {
+                    if (cy < mapSize) {
+                        walls[i * 3 + cx * 64 + 1][cy * 64] = 0;
+                        walls[i * 3 + cx * 64 + 2][cy * 64] = 0;
+                    }
+                    if (cy > 0) {
+                        walls[i * 3 + cx * 64 + 1][cy * 64 - 1] = 0;
+                        walls[i * 3 + cx * 64 + 2][cy * 64 - 1] = 0;
+
+                    }
+                }
+                // left and right
+                if (rand() % 100 < doorFreq && cy < mapSize) {
+                    if (cx < mapSize) {
+                        walls[cx * 64][i * 3 + cy * 64 + 1] = 0;
+                        walls[cx * 64][i * 3 + cy * 64 + 2] = 0;
+                    }
+                    if (cx > 0) {
+                        walls[cx * 64 - 1][i * 3 + cy * 64 + 1] = 0;
+                        walls[cx * 64 - 1][i * 3 + cy * 64 + 2] = 0;
+                    }
+                }
+            }
+
+            // Interior Walls
+            if (cx < mapSize && cy < mapSize) {
+                for (int i = 1; i < 21; i++) {
+                    for (int j = 1; j < 21; j++) {
+                        // horizontal
+                        if (rand() % 100 < doorFreq && cx < mapSize) {
+                            walls[i * 3 + cx * 64 + 1][j * 3 + cy * 64] = 0;
+                            walls[i * 3 + cx * 64 + 2][j * 3 + cy * 64] = 0;
+                        }
+                        // vertical
+                        if (rand() % 100 < doorFreq && cx < mapSize) {
+                            walls[i * 3 + cx * 64][j * 3 + cy * 64 + 1] = 0;
+                            walls[i * 3 + cx * 64][j * 3 + cy * 64 + 2] = 0;
+                        }
                     }
                 }
             }
         }
     }
-    sf::sleep(sf::milliseconds(250));
-
-    // Cutting out doors
-    getline(file, line);
-    drawText(128 - line.length() * 4, 16, line, sf::Color::White);
-    update();
-    for (int cx = 0; cx < mapSize; cx++) {
-        for (int cy = 0; cy < mapSize; cy ++) {
-            if (showDebugInfo) cout << "\n     Chunk (" << cx << ", " << cy << ").";
-
-            // Between Chunks
-            for (int i = 1; i < 63; i++) {
-                n = rand() % chunkDoorRarity; // left walls
-                if (n == 1)
-                {
-                    walls[cx * 64][cy * 64 + i] = 0;
-                    if (cx > 0) walls[cx * 64 - 1][cy * 64 + i] = 0;
-                }
-                n = rand() % chunkDoorRarity; // right walls
-                if (n == 1)
-                {
-                    walls[cx * 64 + 63][cy * 64 + i] = 0;
-                    if (cx < mapSize - 1) walls[cx * 64 + 64][cy * 64 + i] = 0;
-                }
-                n = rand() % chunkDoorRarity; // top walls
-                if (n == 1)
-                {
-                    walls[cx * 64 + i][cy * 64] = 0;
-                    if (cy > 0) walls[cx * 64 + i][cy * 64 - 1] = 0;
-                }
-                n = rand() % chunkDoorRarity; // bottom walls
-                if (n == 1)
-                {
-                    walls[cx * 64 + i][cy * 64 + 63] = 0;
-                    if (cy < mapSize - 1) walls[cx * 64 + i][cy * 64 + 64] = 0;
-                }
-            }
-
-            // Within Chunk
-            for (int i = 0; i < doorFreq; i++) {
-                int x = 1, y = 1;
-                while(walls[x][y] == 0) {
-                    x = rand() % 62 + 1 + 64 * cx;
-                    y = rand() % 62 + 1 + 64 * cy;
-                }
-                walls[x][y] = 0;
-            }
-        }
-    }
-    sf::sleep(sf::milliseconds(250));
 
     // Saving map
     getline(file, line);
@@ -851,7 +852,6 @@ void generateMap() {
             }
         }
     }
-    sf::sleep(sf::milliseconds(250));
 
     file.close();
 }
@@ -1153,8 +1153,13 @@ void gameSettings(){
     ifstream file("Text/Game Setup.txt");
 
     // Check Map Existence
-    bool mapExists = false;
-    if (fs::exists("Map/Map_0_0.txt")) mapExists = false;
+    bool mapExists;
+    if (fs::exists("Map/Map_0_0.txt")) {
+        mapExists = true;
+    }
+    else {
+        mapExists = false;
+    }
     
     // Draw Text
     getline(file, line);
@@ -1173,6 +1178,60 @@ void gameSettings(){
 
     getline(file, line);
     drawText(40, 176, line, sf::Color::White);
+     
+    // Input
+    if (pressed[dn] && inputTimer == 0 && selection < 6) {
+        selection++;
+        inputTimer = 200;
+
+        if (selection == -2) selection = 0;
+        if (selection == 4) selection = 6;
+    }
+    if (pressed[up] && inputTimer == 0 && selection > 0 - 3 * mapExists) {
+        selection--;
+        inputTimer = 200;
+
+        if (selection == 5) selection = 3;
+        if (selection == -1) selection = -3;
+    }
+
+    if (pressed[lt] && inputTimer == 0&& selection >= 0 && selection < 3 && mapSettings[selection] > 0) {
+        mapSettings[selection] --;
+        inputTimer = 200;
+        
+        cout << "\n Map Settings:";
+        for (int i = 0; i < 3; i++) {
+            cout << "\n" << mapSettings[i];
+        }
+    }
+    if (pressed[rt] && inputTimer == 0&& selection >= 0 && selection < 3 && mapSettings[selection] < 2) {
+        mapSettings[selection] ++;
+        inputTimer = 200;
+
+        cout << "\n Map Settings:";
+        for (int i = 0; i < 3; i++) {
+            cout << "\n" << mapSettings[i];
+        }
+    }
+
+    if (pressed[start] || pressed[a]) {
+        switch (selection) {
+        case -3: break;
+        case 6:
+            mapSize = 7 + 10 * mapSettings[0];
+            mapDensity = 20 + 10 * mapSettings[1];
+            doorFreq = 25 - 10 * mapSettings[2];
+
+            generateMap();
+            chunk.x = chunk.y = mapSize / 2;
+            loadMapChunk(chunk);
+            screen = 10;
+            break;
+        }
+    }
+
+    // User Feedback
+    drawHighlightBox(1, 4 + selection, 13);
 }
 void introText() {
     stringstream filename;
