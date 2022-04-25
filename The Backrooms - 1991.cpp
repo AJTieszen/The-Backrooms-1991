@@ -14,17 +14,17 @@ namespace fs = std::filesystem;
 #include <SFML/Graphics.hpp>
 
 // Developer Settings
-bool noClip = true;
+bool noClip = false;
 
 // Game variables
-sf::Vector2f screenPos[4], playerPos(512.f, 512.f);
+sf::Vector2f screenPos[4], playerPos;
 const sf::Vector2f playerOffset(-8.f, -24.f);
 sf::Vector2i chunk;
 
 float speed;
 
 // Map Generation Settings
-int mapSettings[3];
+int mapSettings[3] = {1, 1, 1};
 const int solidWallId = 16;
 int mapSize = 7; // number of 64x64 chunks per axis. Use odd number for symmetric maps.
 int mapDensity = 20; // number of rectangular rooms per chunk
@@ -1174,6 +1174,11 @@ void gameSettings(){
     for (int i = 0; i < 4; i++) {
         getline(file, line);
         drawText(40, 80 + 16 * i, line, sf::Color::White);
+        if (i < 3) {
+            for (int n = 0; n <= mapSettings[i]; n++) getline(file, line);
+            drawText(168, 80 + 16 * i, line, sf::Color::White);
+            for (int n = 0; n < 3 - mapSettings[i] - 1; n++) getline(file, line);
+        }
     }
 
     getline(file, line);
@@ -1219,13 +1224,16 @@ void gameSettings(){
         case -3: break;
         case 6:
             mapSize = 7 + 10 * mapSettings[0];
-            mapDensity = 20 + 10 * mapSettings[1];
-            doorFreq = 25 - 10 * mapSettings[2];
+            mapDensity = 20 + 5 * mapSettings[1];
+            doorFreq = 35 - 5 * mapSettings[2];
+
+            playerPos = { 512.f, 512.5 };
+            screenPos[0] = { 385, 400 };
 
             generateMap();
             chunk.x = chunk.y = mapSize / 2;
             loadMapChunk(chunk);
-            screen = 10;
+            screen = 9;
             break;
         }
     }
