@@ -122,7 +122,7 @@ int main() {
     window.setFramerateLimit(maxFrameRate);
     buffer.create(256, 224);
     bufferObj.setScale(2.f, 2.f);
-    window.setMouseCursorVisible(false);
+    //window.setMouseCursorVisible(false);
 
     if(showDebugInfo) cout << "done.";
 
@@ -207,7 +207,7 @@ int main() {
 
     cout << "\n\n\nThank you for playing!\n\n\n";
 
-    sf::sleep(sf::seconds(5));
+    sf::sleep(sf::seconds(3));
 
     return 0;
 }
@@ -855,6 +855,26 @@ void generateMap() {
 
     file.close();
 }
+void loadMap() {
+    if (showDebugInfo) cout << "\nLoading map...";
+
+    if (showDebugInfo) cout << "\n   checking size: ";
+    string filename;
+    bool sizeReached = false;
+
+    mapSize = 0;
+    while (!sizeReached) {
+        mapSize++;
+
+        filename = "Map/Map_" + to_string(mapSize) + "_" + to_string(mapSize) + ".txt";
+        if (showDebugInfo) cout << "\n     " << filename;
+
+        if (!fs::exists(filename)) sizeReached = true;
+    }
+
+    if (showDebugInfo) cout << "\n   map size: " << mapSize << " chunks.";
+    mapSize--;
+}
 void loadMapChunk(sf::Vector2i chunk) {
     if (showDebugInfo) cout << "\nLoading Chunk: (" << chunk.x << ", " << chunk.y << ")";
     stringstream filename;
@@ -1153,13 +1173,8 @@ void gameSettings(){
     ifstream file("Text/Game Setup.txt");
 
     // Check Map Existence
-    bool mapExists;
-    if (fs::exists("Map/Map_0_0.txt")) {
-        mapExists = true;
-    }
-    else {
-        mapExists = false;
-    }
+    bool mapExists = fs::exists("Map/Map_0_0.txt");
+
     
     // Draw Text
     getline(file, line);
@@ -1221,7 +1236,19 @@ void gameSettings(){
 
     if (pressed[start] || pressed[a]) {
         switch (selection) {
-        case -3: break;
+        case -3:
+            loadMap();
+            //loadCharData();
+
+            // if no char data
+            playerPos = { 512.f, 512.5 };
+            screenPos[0] = { 385, 400 };
+            chunk.x = chunk.y = mapSize / 2;
+
+            loadMapChunk(chunk);
+            screen = 9;
+
+            break;
         case 6:
             mapSize = 7 + 10 * mapSettings[0];
             mapDensity = 20 + 5 * mapSettings[1];
@@ -1232,8 +1259,10 @@ void gameSettings(){
 
             generateMap();
             chunk.x = chunk.y = mapSize / 2;
+
             loadMapChunk(chunk);
             screen = 9;
+
             break;
         }
     }
