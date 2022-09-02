@@ -1,0 +1,16 @@
+Load Game
+Generate a map first!
+Map Size      :
+Small
+Medium
+Large
+Map Density   :
+Open
+Normal
+Cubicles
+Map Difficulty:
+Easy
+Normal
+Hard
+Customize Difficulty
+Generate map!

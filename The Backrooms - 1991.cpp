@@ -42,7 +42,7 @@ bool showScanlines, blur;
 const int stdFrameRate[] = { 0, 30, 60, 75, 120, 144, 240, 360, 0}; // 0 = V-Sync
 
 // State data
-int screen, textPhase = 1, inputTimer, selection = 0, mappedButtons = 0, frameCount = 0, frUpdateCount = 0;
+int screen, textPhase = 1, inputTimer, selection = 0, mappedButtons = 0, frameCount = 0, frUpdateCount = 0, retScreen;
 float frameTime, avgFrameTime, currentFrameRate, frUpdate;
 float frameScl; // Normalize for 60 fps
 bool pressed[12]; // up, dn, lt, rt, start, select, a, b, x, y, lb, rb
@@ -107,6 +107,7 @@ void GfxSettings();
 void gameSettings();
 void introText();
 void mainGame();
+void pauseMenu();
 
 // Screen Effects
 
@@ -187,6 +188,11 @@ int main() {
 
             // Gameplay
         case 10: mainGame(); break;
+
+            // Pause Menu
+        case 15: pauseMenu(); break;
+
+
             
             // Controls
         case -1: Controls(); break;
@@ -535,11 +541,10 @@ void saveGfxSettings() {
     file.open("Graphics.dat", ios::out);
     file << "Aspect_Ratio: " << aspectRatio;
     file << "\nScale_Factor: " << scale;
-    file << "\nFrame_Rate: " << maxFrameRate;
-    file << "\nScanlines: " << showScanlines;
-    file << "\nCRT_Blur: " << blur;
+    file << "\nFrame_Rate:   " << maxFrameRate;
+    file << "\nScanlines:    " << showScanlines;
+    file << "\nCRT_Blur:     " << blur;
 
-    if (showDebugInfo) cout << "done.";
 }
 void loadGfxSettings() {
     if (showDebugInfo) cout << "\nReading graphics settings...";
@@ -587,6 +592,49 @@ void loadGfxSettings() {
 
     if (showDebugInfo) cout << "Done.";
 }
+void savePlayerStatus() {
+    if (showDebugInfo) cout << "\nSaving player status...";
+
+    ofstream file;
+    file.open("player.dat");
+    file << "Chunk_X:  " << chunk.x;
+    file << "\nChunk_Y:  " << chunk.y;
+    file << "\nPlayer_X: " << playerPos.x;
+    file << "\nPlayer_Y: " << playerPos.y;
+    file << "\nCamera_X: " << screenPos[0].x;
+    file << "\nCamera_Y: " << screenPos[0].y;
+
+    if (showDebugInfo) cout << "done.";
+}
+void loadPlayerStatus() {
+    if (showDebugInfo) cout << "\nLoading Player Data...";
+    string line;
+    string expectedLabels[] = { "Chunk_X:", "Chunk_Y:", "Player_X:", "Player_Y:", "Camera_X:", "Camera_Y:" };
+    float values[6];
+
+    ifstream file("Player.dat");
+    if (file.is_open()) {
+        for (int i = 0; i < 6; i++) {
+            getline(file, line, ' ');
+            if (line != expectedLabels[i]) cout << "\nWarining: character data may not be formatted correctly (line " << i + 1 << ").";
+            getline(file, line);
+            values[i] = stof(line);
+        }
+
+        chunk.x = values[0];
+        chunk.y = values[1];
+        playerPos.x = values[2];
+        playerPos.y = values[3];
+        screenPos[0].x = values[4];
+        screenPos[0].y = values[5];
+    }
+    else {
+        playerPos = { 512.f, 512.5 };
+        screenPos[0] = { 385, 400 };
+        chunk.x = chunk.y = mapSize / 2;
+    }
+
+}
 
 void movePlayer(float speed, int layer) {
     const int strictness = 5;
@@ -594,38 +642,29 @@ void movePlayer(float speed, int layer) {
     int gridPosY = playerPos.y / 16;
     bool clrUp = true, clrDn = true, clrLt = true, clrRt = true;
 
-    // check if path is clear
-    if (!noClip) {
-        clrUp = (tilemap[layer][(int)(playerPos.x + strictness - 1) / 16][(int)(playerPos.y - strictness) / 16] < solidWallId)
-            && (tilemap[layer][(int)(playerPos.x - strictness + 1) / 16][(int)(playerPos.y - strictness) / 16] < solidWallId);
-        clrDn = (tilemap[layer][(int)(playerPos.x + strictness - 1) / 16][(int)(playerPos.y + strictness) / 16] < solidWallId)
-            && (tilemap[layer][(int)(playerPos.x - strictness + 1) / 16][(int)(playerPos.y + strictness) / 16] < solidWallId);
-        clrLt = (tilemap[layer][(int)(playerPos.x - strictness) / 16][(int)(playerPos.y + strictness - 1) / 16] < solidWallId)
-            && (tilemap[layer][(int)(playerPos.x - strictness) / 16][(int)(playerPos.y - strictness + 1) / 16] < solidWallId);
-        clrRt = (tilemap[layer][(int)(playerPos.x + strictness) / 16][(int)(playerPos.y + strictness - 1) / 16] < solidWallId)
-            && (tilemap[layer][(int)(playerPos.x + strictness) / 16][(int)(playerPos.y - strictness + 1) / 16] < solidWallId);
-    }
-
-    // move character
+    // move character Up / Down
     if (pressed[up] && clrUp) playerPos.y -= speed * frameScl;
     if (pressed[dn] && clrDn) playerPos.y += speed * frameScl;
+
+    if ((tilemap[layer][(int)(playerPos.x + strictness) / 16][(int)(playerPos.y - 8) / 16] >= solidWallId)
+        || (tilemap[layer][(int)(playerPos.x - strictness) / 16][(int)(playerPos.y - 8) / 16] >= solidWallId))
+        playerPos.y = gridPosY * 16 + 8;
+    if ((tilemap[layer][(int)(playerPos.x + strictness) / 16][(int)(playerPos.y + 8) / 16] >= solidWallId)
+        || (tilemap[layer][(int)(playerPos.x - strictness) / 16][(int)(playerPos.y + 8) / 16] >= solidWallId))
+        playerPos.y = gridPosY * 16 + 8;
+
+    // Move Character Left / Right
     if (pressed[lt] && clrLt) playerPos.x -= speed * frameScl;
     if (pressed[rt] && clrRt) playerPos.x += speed * frameScl;
 
     // push character out of wall
     if (!noClip) {
-        if ((tilemap[layer][(int)(playerPos.x + strictness) / 16][(int)(playerPos.y - 8) / 16] >= solidWallId)
-            || (tilemap[layer][(int)(playerPos.x - strictness) / 16][(int)(playerPos.y - 8) / 16] >= solidWallId))
-            playerPos.y = gridPosY * 16 + 8;
-        if ((tilemap[layer][(int)(playerPos.x + strictness) / 16][(int)(playerPos.y + 8) / 16] >= solidWallId)
-            || (tilemap[layer][(int)(playerPos.x - strictness) / 16][(int)(playerPos.y + 8) / 16] >= solidWallId))
-            playerPos.y = gridPosY * 16 + 8;
         if ((tilemap[layer][(int)(playerPos.x - 8) / 16][(int)(playerPos.y + strictness) / 16] >= solidWallId)
             || (tilemap[layer][(int)(playerPos.x - 8) / 16][(int)(playerPos.y - strictness) / 16] >= solidWallId))
             playerPos.x = gridPosX * 16 + 8;
-        if ((tilemap[layer][(int)(playerPos.x + 8) / 16][(int)(playerPos.y + strictness) / 16] >= solidWallId)
-            || (tilemap[layer][(int)(playerPos.x + 8) / 16][(int)(playerPos.y - strictness) / 16] >= solidWallId))
-            playerPos.x = gridPosX * 16 + 8;
+        if ((tilemap[layer][(int)(playerPos.x + 6) / 16][(int)(playerPos.y + strictness) / 16] >= solidWallId)
+            || (tilemap[layer][(int)(playerPos.x + 6) / 16][(int)(playerPos.y - strictness) / 16] >= solidWallId))
+            playerPos.x = gridPosX * 16 + 10;
     }
 }
 void movePlayer(float speed) {
@@ -687,7 +726,7 @@ void update() {
     readInput();
     updateFrameTime();
     updateScreen();
-    buffer.clear();
+    //buffer.clear();
 }
 
 // Game Functions
@@ -914,27 +953,26 @@ void MainMenu() {
     drawHighlightBox(4, 3 + selection * 2, 7);
 
     // Menu functionality
-    if ((pressed[a] || pressed[start]) && inputTimer == 0) { // slct option
+    if ((pressed[a] || pressed[start]) && inputTimer == 0) { // select option
         switch (selection) {
-        case 0:
+        case 0: // Play
             screen++;
-            while (tilemap[0][(int)playerPos.x / 16][(int)playerPos.y / 16] >= solidWallId) {
-                playerPos.x += 16;
-                playerPos.y += 16;
-            }
 
             break;
-        case 1:
+        case 1: // Controls
             screen = -1;
             loadTilemap("Tiles/Controls.txt");
             loadTilemap("Tiles/Controls Menu.txt", 1);
             break;
-        case 2:
+        case 2: // Options
             screen = -10;
             loadTilemap("Tiles/Graphics Settings.txt");
             loadTilemap("Tiles/Graphics Settings Bottom.txt", 1);
+            retScreen = 1;
             break;
-        case 3: window.close();
+        case 3: // Quit
+            window.close();
+            break;
         }
         inputTimer = 250;
         selection = 0;
@@ -1134,13 +1172,21 @@ void GfxSettings() {
         }
         break;
 
-    case 6: // Return to main menu
+    case 6: // Return to previous menu
         if ((pressed[a] || pressed[start]) && inputTimer == 0) {
-            screen = 0;
+            screen = retScreen;
             selection = 0;
-            inputTimer = 200;
-            loadTilemap("Tiles/Title Screen.txt");
-            loadTilemap("Tiles/Main Menu.txt", 1);
+            inputTimer = 250;
+
+            switch (screen) {
+            case 1: // main menu
+                loadTilemap("Tiles/Title Screen.txt");
+                loadTilemap("Tiles/Main Menu.txt", 1);
+                return;
+            case 10: // pause menu
+                loadTilemap("Tiles/Pause Menu.txt", 1);
+                return;
+            }
         }
         break;
     case 7: selection = 0;
@@ -1169,6 +1215,7 @@ void GfxSettings() {
     }
 }
 void gameSettings(){
+    buffer.clear();
     string line;
     ifstream file("Text/Game Setup.txt");
 
@@ -1238,15 +1285,17 @@ void gameSettings(){
         switch (selection) {
         case -3:
             loadMap();
-            //loadCharData();
-
-            // if no char data
-            playerPos = { 512.f, 512.5 };
-            screenPos[0] = { 385, 400 };
-            chunk.x = chunk.y = mapSize / 2;
+            if (fs::exists("Player.dat")) {
+                loadPlayerStatus();
+            }
+            else {
+                playerPos = { 512.f, 512.5 };
+                screenPos[0] = { 385, 400 };
+                chunk.x = chunk.y = mapSize / 2;
+            }
 
             loadMapChunk(chunk);
-            screen = 9;
+            screen = 10;
 
             break;
         case 6:
@@ -1265,6 +1314,8 @@ void gameSettings(){
 
             break;
         }
+
+        inputTimer = 250;
     }
 
     // User Feedback
@@ -1297,6 +1348,62 @@ void introText() {
         textPhase++;
         inputTimer = 250;
         if (textPhase == 3) screen++;
+    }
+}
+void pauseMenu() {
+    loadTilemap("Tiles/Pause Menu.txt", 1);
+    drawTilemapStatic(menu, 1);
+
+    // Load and display text
+    string line;
+    ifstream file("Text/Pause Menu.txt");
+    if (file.is_open()) {
+        getline(file, line);
+        drawText(128 - 4 * (int)line.length(), 32, line);
+
+        for (int i = 0; i < 4; i++) {
+            getline(file, line);
+            drawText(100, 32 * i + 64, line);
+        }
+
+        file.close();
+    }
+
+    // Menu Visuals
+    drawHighlightBox(4, 3 + selection * 2, 7);
+
+    // Menu functionality
+    if ((pressed[a] || pressed[start]) && inputTimer == 0) { // select option
+        switch (selection) {
+        case 0: // Resume
+            screen = 10;
+
+            break;
+        case 1: // Save
+            savePlayerStatus();
+            break;
+        case 2: // Options
+            screen = -10;
+            loadTilemap("Tiles/Graphics Settings.txt");
+            loadTilemap("Tiles/Graphics Settings Bottom.txt", 1);
+            retScreen = 10;
+            break;
+        case 3: // Quit
+            window.close();
+            break;
+        }
+        inputTimer = 250;
+        selection = 0;
+    }
+    if (pressed[up] && inputTimer == 0) { // Move selection down
+        selection--;
+        if (selection < 0) selection = 3;
+        inputTimer = 200;
+    }
+    if (pressed[dn] && inputTimer == 0) { // Move selection up
+        selection++;
+        if (selection > 3) selection = 0;
+        inputTimer = 200;
     }
 }
 void mainGame()
@@ -1366,6 +1473,13 @@ void mainGame()
     drawTilemapScroll(walls);
     playerObj.setPosition(playerPos + playerOffset - screenPos[0]);
     buffer.draw(playerObj);
+
+    // Pause Menu
+    if ((pressed[start] || pressed[slct]) && inputTimer == 0) {
+        screen = 15;
+        inputTimer = 250;
+        selection = 0;
+    }
 }
 
 // Screen effects
