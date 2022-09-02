@@ -767,6 +767,7 @@ void generateMap() {
     int x1, y1, x2, y2, tmp;
 
     // Building walls
+    buffer.clear(sf::Color::Black);
     getline(file, line);
     drawText(128 - line.length() * 4, 16, line, sf::Color::White);
     update();
@@ -813,6 +814,7 @@ void generateMap() {
     }
 
     // Cutting doorways
+    buffer.clear(sf::Color::Black);
     getline(file, line);
     drawText(128 - line.length() * 4, 16, line, sf::Color::White);
     update();
@@ -868,6 +870,7 @@ void generateMap() {
     }
 
     // Saving map
+    buffer.clear(sf::Color::Black);
     getline(file, line);
     drawText(128 - line.length() * 4, 16, line, sf::Color::White);
     update();
@@ -1283,7 +1286,7 @@ void gameSettings(){
 
     if (pressed[start] || pressed[a]) {
         switch (selection) {
-        case -3:
+        case -3: // Load Map
             loadMap();
             if (fs::exists("Player.dat")) {
                 loadPlayerStatus();
@@ -1298,7 +1301,7 @@ void gameSettings(){
             screen = 10;
 
             break;
-        case 6:
+        case 6: // New Map
             mapSize = 7 + 10 * mapSettings[0];
             mapDensity = 20 + 5 * mapSettings[1];
             doorFreq = 35 - 5 * mapSettings[2];
@@ -1312,6 +1315,8 @@ void gameSettings(){
             loadMapChunk(chunk);
             screen = 9;
 
+            remove("Player.dat");
+
             break;
         }
 
@@ -1322,6 +1327,8 @@ void gameSettings(){
     drawHighlightBox(1, 4 + selection, 13);
 }
 void introText() {
+    buffer.clear();
+
     stringstream filename;
     string line;
     int lineX, lineY;
@@ -1389,7 +1396,8 @@ void pauseMenu() {
             retScreen = 10;
             break;
         case 3: // Quit
-            window.close();
+            loadTilemap("Tiles/Title.txt");
+            screen = 0;
             break;
         }
         inputTimer = 250;
@@ -1408,6 +1416,8 @@ void pauseMenu() {
 }
 void mainGame()
 {
+    buffer.clear();
+
     // Move player
     if (pressed[b]) speed = 2.5;
     else speed = 1;
