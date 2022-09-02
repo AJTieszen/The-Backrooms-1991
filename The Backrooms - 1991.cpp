@@ -1396,8 +1396,10 @@ void pauseMenu() {
             retScreen = 10;
             break;
         case 3: // Quit
-            loadTilemap("Tiles/Title.txt");
-            screen = 0;
+            loadTilemap("Tiles/Title Screen.txt");
+            loadTilemap("Tiles/Main Menu.txt", 1);
+            screen = 1;
+            selection = 4;
             break;
         }
         inputTimer = 250;
