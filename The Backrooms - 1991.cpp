@@ -21,7 +21,11 @@ sf::Vector2f screenPos[4], playerPos;
 const sf::Vector2f playerOffset(-8.f, -24.f);
 sf::Vector2i chunk;
 
+// Player Stats
+float moveSpeed = 1.3;
 float speed;
+float maxStamina = 50;
+float stamina = maxStamina;
 
 // Map Generation Settings
 int mapSettings[3] = {1, 1, 1};
@@ -90,12 +94,15 @@ void movePlayer(float speed, int layer); // layer determines collision detection
 void movePlayer(float speed);
 void movePlayer();
 
+void capStats();
+
 void updateFrameTime();
 void updateScreen();
 void update();
 
 // Game Functions
 void drawHighlightBox(int x, int y, int width);
+void drawStatusBars();
 void generateMap();
 void loadMapChunk(sf::Vector2i chunk);
 
@@ -674,6 +681,11 @@ void movePlayer() {
     movePlayer(1, 0);
 }
 
+void capStats() {
+    if (stamina < 0) stamina = 0;
+    if (stamina > maxStamina) stamina = maxStamina;
+}
+
 void updateFrameTime() {
     sf::Time frametime = clk.getElapsedTime();
     clk.restart();
@@ -750,6 +762,18 @@ void drawHighlightBox(int x, int y, int width) {
         tile.setPosition((x + width) * 16.f,(y + row) * 16.f);
         buffer.draw(tile);
     }
+}
+void drawStatusBars() {
+    capStats();
+
+    // Health
+
+    // Stamina
+    sf::RectangleShape stam;
+    stam.setSize(sf::Vector2f(32 * stamina / maxStamina, 4));
+    stam.setPosition(sf::Vector2f(20, 22));
+    stam.setFillColor(sf::Color::Green);
+    buffer.draw(stam);
 }
 void generateMap() {
     // Prepare to Display Text From File
@@ -1416,13 +1440,18 @@ void pauseMenu() {
         inputTimer = 200;
     }
 }
-void mainGame()
-{
+void mainGame() {
     buffer.clear();
 
     // Move player
-    if (pressed[b]) speed = 2.5;
-    else speed = 1;
+    speed = moveSpeed;
+    if (pressed[b]) {
+        if (stamina > 0) speed = moveSpeed * 2.5;
+        stamina --;
+    }
+    else {
+        stamina += 0.1;
+    }
     movePlayer(speed);
 
     // Scroll screen
@@ -1485,6 +1514,8 @@ void mainGame()
     drawTilemapScroll(walls);
     playerObj.setPosition(playerPos + playerOffset - screenPos[0]);
     buffer.draw(playerObj);
+
+    drawStatusBars();
 
     // Pause Menu
     if ((pressed[start] || pressed[slct]) && inputTimer == 0) {
