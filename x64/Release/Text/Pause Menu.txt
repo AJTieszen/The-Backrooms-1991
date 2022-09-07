@@ -1,0 +1,5 @@
+Paused:
+Resume
+Save
+Options
+Quit
