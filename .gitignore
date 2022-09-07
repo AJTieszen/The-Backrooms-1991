@@ -358,3 +358,6 @@ MigrationBackup/
 FodyWeavers.xsd
 /Map
 /player.dat
+/x64/Release/Map
+/x64/Release/player.dat
+*.dat
