@@ -1378,8 +1378,8 @@ void introText() {
     if ((pressed[start] || pressed[a]) && inputTimer == 0) {
         textPhase++;
         inputTimer = 250;
-        if (textPhase == 3) screen++;
     }
+    if (textPhase >= 3) screen++;
 }
 void pauseMenu() {
     loadTilemap("Tiles/Pause Menu.txt", 1);
