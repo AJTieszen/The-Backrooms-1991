@@ -1218,6 +1218,7 @@ void GfxSettings() {
                 return;
             case 10: // pause menu
                 loadTilemap("Tiles/Pause Menu.txt", 1);
+                loadMapChunk(chunk);
                 return;
             }
         }
