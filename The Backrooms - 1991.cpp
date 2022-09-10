@@ -779,6 +779,9 @@ void drawStatusBars() {
     buffer.draw(stam);
 }
 void generateMap() {
+    // Clear previous map
+    fs::remove_all("Map");
+
     // Prepare to Display Text From File
     string line;
     ifstream file("Text/MapGen.txt");
@@ -1458,6 +1461,7 @@ void mainGame() {
         chunk.x--;
         if (chunk.x < 0) {
             screen = 20; // Victory
+            inputTimer = 250;
         }
         else {
             loadMapChunk(chunk);
@@ -1469,6 +1473,7 @@ void mainGame() {
         chunk.x++;
         if (chunk.x >= mapSize) {
             screen = 20; // Victory
+            inputTimer = 250;
         }
         else {
             loadMapChunk(chunk);
@@ -1480,6 +1485,7 @@ void mainGame() {
         chunk.y--;
         if (chunk.y < 0) {
             screen = 20; // Victory
+            inputTimer = 250;
         }
         else {
             loadMapChunk(chunk);
@@ -1491,6 +1497,7 @@ void mainGame() {
         chunk.y++;
         if (chunk.y >= mapSize) {
             screen = 20; // Victory
+            inputTimer = 250;
         }
         else {
             loadMapChunk(chunk);
@@ -1516,7 +1523,31 @@ void mainGame() {
 
 // Game Over Screens
 void victory() {
+    string line;
+    ifstream file("Text/Victory Message.txt");
     buffer.clear(sf::Color::Cyan);
+    int x, y = 96;
+    bool cont = false;
+
+    // Graphics
+    while (getline(file, line)) {
+        x = 128 - 4 * line.length();
+        drawText(x, y, line, sf::Color::Black);
+        y += 16;
+    }
+
+    // Return to menu
+    for (int i = start; i < rb; i++) {
+        if (pressed[i] && inputTimer == 0) cont = true;
+    }
+    if (cont) {
+        loadTilemap("Tiles/Title Screen.txt");
+        loadTilemap("Tiles/Main Menu.txt", 1);
+        screen = 1;
+        selection = 4;
+        inputTimer = 250;
+        selection = 0;
+    }
 }
 void death() {
     buffer.clear(sf::Color::Red);
