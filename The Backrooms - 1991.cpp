@@ -26,6 +26,8 @@ float moveSpeed = 1.3;
 float speed;
 float maxStamina = 50;
 float stamina = maxStamina;
+int health = 16;
+int maxHealth = health;
 
 // Map Generation Settings
 int mapSettings[3] = {1, 1, 1};
@@ -70,6 +72,7 @@ sf::Texture settings;
 
 sf::Texture walls;
 sf::Texture player;
+sf::Texture ui;
 
 sf::Sprite playerObj;
 
@@ -153,11 +156,13 @@ int main() {
         if (!settings.loadFromFile("Tiles/Settings.png")) cout << "\nUnable to load settings tileset.";
 
         if (!walls.loadFromFile("Tiles/Background.png")) cout << "\nUnable to load background tileset.";
+        if (!ui.loadFromFile("Tiles/Status UI.png")) cout << "\nUnable to load user interface graphics";
         if (!player.loadFromFile("Sprites/Generic Guy.png")) cout << "\nUnable to load player character.";
         playerObj.setTexture(player);
 
         loadTilemap("Tiles/Title Screen.txt");
         loadTilemap("Tiles/Main Menu.txt", 1);
+        loadTilemap("Tiles/UI.txt", 3);
 
         if (showDebugInfo) cout << "done.";
     }
@@ -250,7 +255,7 @@ void drawTilemapStatic(sf::Texture tex, int layer) {
 
             tile.setTextureRect(sf::IntRect(tileX, tileY, 16, 16));
 
-            buffer.draw(tile);
+            if (tileID != -1) buffer.draw(tile);
         }
     }
 }
@@ -603,6 +608,7 @@ void loadGfxSettings() {
 
     if (showDebugInfo) cout << "Done.";
 }
+
 void savePlayerStatus() {
     if (showDebugInfo) cout << "\nSaving player status...";
 
@@ -614,18 +620,22 @@ void savePlayerStatus() {
     file << "\nPlayer_Y: " << playerPos.y;
     file << "\nCamera_X: " << screenPos[0].x;
     file << "\nCamera_Y: " << screenPos[0].y;
+    file << "\nStamina: " << stamina;
+    file << "\nMax_Stamina: " << maxStamina;
+    file << "\nHealth: " << health;
+    file << "\nMax_Health: " << maxHealth;
 
     if (showDebugInfo) cout << "done.";
 }
 void loadPlayerStatus() {
     if (showDebugInfo) cout << "\nLoading Player Data...";
     string line;
-    string expectedLabels[] = { "Chunk_X:", "Chunk_Y:", "Player_X:", "Player_Y:", "Camera_X:", "Camera_Y:" };
-    float values[6];
+    string expectedLabels[] = { "Chunk_X:", "Chunk_Y:", "Player_X:", "Player_Y:", "Camera_X:", "Camera_Y:", "Stamina:", "Max_Stamina:", "Health:", "Max_Health:", };
+    float values[10];
 
     ifstream file("Player.dat");
     if (file.is_open()) {
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < 10; i++) {
             getline(file, line, ' ');
             if (line != expectedLabels[i]) cout << "\nWarining: character data may not be formatted correctly (line " << i + 1 << ").";
             getline(file, line);
@@ -638,6 +648,10 @@ void loadPlayerStatus() {
         playerPos.y = values[3];
         screenPos[0].x = values[4];
         screenPos[0].y = values[5];
+        stamina = values[6];
+        maxStamina = values[7];
+        health = values[8];
+        maxHealth= values[9];
     }
     else {
         playerPos = { 512.f, 512.5 };
@@ -688,6 +702,32 @@ void movePlayer() {
 void capStats() {
     if (stamina < 0) stamina = 0;
     if (stamina > maxStamina) stamina = maxStamina;
+
+    if (health <= 0) screen = 21; // Death
+    if (health > maxHealth) {
+        stamina += health - maxHealth; // "Overheal" adds to stamina
+        health = maxHealth;
+    }
+}
+void drawStatusBars() {
+    capStats();
+
+    for (int i = 0; i < 16; i++) {
+        if (i < health / 2) tilemap[3][i][0] = 1;
+        else if (health - 1 == 2 * i)  tilemap[3][i][0] = 3;
+        else if (i < maxHealth / 2) tilemap[3][i][0] = 2;
+        else tilemap[3][i][0] = -1;
+    }
+    drawTilemapStatic(ui, 3);
+
+    // Health
+
+    // Stamina
+    sf::RectangleShape stam;
+    stam.setSize(sf::Vector2f(32 * stamina / maxStamina, 4));
+    stam.setPosition(sf::Vector2f(24, 22));
+    stam.setFillColor(sf::Color::Green);
+    buffer.draw(stam);
 }
 
 void updateFrameTime() {
@@ -765,18 +805,6 @@ void drawHighlightBox(int x, int y, int width) {
         tile.setPosition((x + width) * 16.f,(y + row) * 16.f);
         buffer.draw(tile);
     }
-}
-void drawStatusBars() {
-    capStats();
-
-    // Health
-
-    // Stamina
-    sf::RectangleShape stam;
-    stam.setSize(sf::Vector2f(32 * stamina / maxStamina, 4));
-    stam.setPosition(sf::Vector2f(20, 22));
-    stam.setFillColor(sf::Color::Green);
-    buffer.draw(stam);
 }
 void generateMap() {
     // Clear previous map
@@ -1451,6 +1479,16 @@ void mainGame() {
     }
     movePlayer(speed);
 
+    // Debug
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Equal) && inputTimer == 0) {
+        health++;
+        inputTimer = 200;
+    }
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Dash) && inputTimer == 0) {
+        health--;
+        inputTimer = 200;
+    }
+
     // Scroll screen
     if (playerObj.getPosition().x > 192) screenPos[0].x += speed * frameScl;
     if (playerObj.getPosition().x < 64) screenPos[0].x -= speed * frameScl;
@@ -1551,7 +1589,34 @@ void victory() {
     }
 }
 void death() {
-    buffer.clear(sf::Color::Red);
+    string line;
+    ifstream file("Text/Death Message.txt");
+    buffer.clear(sf::Color::Black);
+    int x;
+    bool cont = false;
+
+    // Reset stats
+    health = maxHealth;
+    remove("Player.dat");
+
+    // Graphics
+    getline(file, line);
+    x = 128 - 4 * line.length();
+    drawText(x, 104, line, sf::Color::Red);
+
+    // Return to menu
+    for (int i = start; i < rb; i++) {
+        if (pressed[i] && inputTimer == 0) cont = true;
+    }
+    if (cont) {
+        loadTilemap("Tiles/Title Screen.txt");
+        loadTilemap("Tiles/Main Menu.txt", 1);
+        screen = 1;
+        selection = 4;
+        inputTimer = 250;
+        selection = 0;
+    }
+
 }
 
 // Screen effects
