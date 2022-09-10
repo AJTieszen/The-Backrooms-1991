@@ -1360,11 +1360,13 @@ void gameSettings(){
 
             generateMap();
             chunk.x = chunk.y = mapSize / 2;
-
             loadMapChunk(chunk);
             screen = 9;
 
+            // Clear Prev. Player Stats
             remove("Player.dat");
+            health = maxHealth;
+            stamina = maxStamina;
 
             break;
         }
