@@ -113,8 +113,12 @@ void Controls();
 void GfxSettings();
 void gameSettings();
 void introText();
-void mainGame();
 void pauseMenu();
+void mainGame();
+
+// Game Over Screens
+void victory();
+void death();
 
 // Screen Effects
 
@@ -122,7 +126,7 @@ void pauseMenu();
 
 int main() {
     // Print startup info to terminal
-    cout << "Opening " << title << ". Press TAB to toggle debug information.\n";
+    cout << "Opening " << title << ". Press TAB to show debug information and frame rate.\n";
 
     // Create window
     if(showDebugInfo) cout << "Creating window...";
@@ -177,7 +181,8 @@ int main() {
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::Tab)) {
             if(!toggleDebugInfo) {
                 showDebugInfo = !showDebugInfo;
-                cout << "\n   > Show debug info : " << showDebugInfo;
+                if (showDebugInfo) cout << "\n   > Showing debug info.";
+                else cout << "\n   > Hiding debug info.";
             }
             toggleDebugInfo = true;
         } else toggleDebugInfo = false;
@@ -199,7 +204,9 @@ int main() {
             // Pause Menu
         case 15: pauseMenu(); break;
 
-
+            // Game Over
+        case 20: victory(); break;
+        case 21: death(); break;
             
             // Controls
         case -1: Controls(); break;
@@ -309,8 +316,7 @@ void loadTilemap(string filename, int layer) {
 
     ifstream file(filename);
 
-    //if (file.is_open()) {
-     {
+    if (file.is_open()) {
         // get tilemap width
         getline(file, line, ' ');
         if (line != "tileswide") cout << "\nWarning: Unexpected tilemap format.";
@@ -336,7 +342,7 @@ void loadTilemap(string filename, int layer) {
 
         file.close();
     }
-    //else cout << "\nUnable to open tilemap: " << filename;
+    else cout << "\nUnable to open tilemap: " << filename;
 }
 void loadTilemap(string filename) {
     loadTilemap(filename, 0);
@@ -413,9 +419,7 @@ void readInput() {
 void MapControls() {
     if (!sf::Joystick::isConnected(0)) {
         screen = -1;
-        if (showDebugInfo) {
-            cout << "\n No joystick found to map.";
-        }
+        if (showDebugInfo) cout << "\n No joystick found to map.";
     }
 
     buffer.clear(sf::Color::Black);
@@ -738,7 +742,6 @@ void update() {
     readInput();
     updateFrameTime();
     updateScreen();
-    //buffer.clear();
 }
 
 // Game Functions
@@ -1292,20 +1295,10 @@ void gameSettings(){
     if (pressed[lt] && inputTimer == 0&& selection >= 0 && selection < 3 && mapSettings[selection] > 0) {
         mapSettings[selection] --;
         inputTimer = 200;
-        
-        cout << "\n Map Settings:";
-        for (int i = 0; i < 3; i++) {
-            cout << "\n" << mapSettings[i];
-        }
     }
     if (pressed[rt] && inputTimer == 0&& selection >= 0 && selection < 3 && mapSettings[selection] < 2) {
         mapSettings[selection] ++;
         inputTimer = 200;
-
-        cout << "\n Map Settings:";
-        for (int i = 0; i < 3; i++) {
-            cout << "\n" << mapSettings[i];
-        }
     }
 
     if (pressed[start] || pressed[a]) {
@@ -1464,8 +1457,7 @@ void mainGame() {
     if (playerPos.x <= 8.f) {
         chunk.x--;
         if (chunk.x < 0) {
-            cout << "\n\n\nCongratulations! You escaped the Backrooms!";
-            window.close();
+            screen = 20; // Victory
         }
         else {
             loadMapChunk(chunk);
@@ -1476,8 +1468,7 @@ void mainGame() {
     if (playerPos.x >= 1016.f) {
         chunk.x++;
         if (chunk.x >= mapSize) {
-            cout << "\n\n\nCongratulations! You escaped the Backrooms!";
-            window.close();
+            screen = 20; // Victory
         }
         else {
             loadMapChunk(chunk);
@@ -1488,8 +1479,7 @@ void mainGame() {
     if (playerPos.y <= 8.f) {
         chunk.y--;
         if (chunk.y < 0) {
-            cout << "\n\n\nCongratulations! You escaped the Backrooms!";
-            window.close();
+            screen = 20; // Victory
         }
         else {
             loadMapChunk(chunk);
@@ -1500,8 +1490,7 @@ void mainGame() {
     if (playerPos.y >= 1016.f) {
         chunk.y++;
         if (chunk.y >= mapSize) {
-            cout << "\n\n\nCongratulations! You escaped the Backrooms!";
-            window.close();
+            screen = 20; // Victory
         }
         else {
             loadMapChunk(chunk);
@@ -1523,6 +1512,14 @@ void mainGame() {
         inputTimer = 250;
         selection = 0;
     }
+}
+
+// Game Over Screens
+void victory() {
+    buffer.clear(sf::Color::Cyan);
+}
+void death() {
+    buffer.clear(sf::Color::Red);
 }
 
 // Screen effects
