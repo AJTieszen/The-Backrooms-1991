@@ -298,7 +298,8 @@ void drawText(int x, int y, string txt, sf::Color color) {
     text.setTexture(font);
     text.setColor(color);
 
-    int c, cx, cy;
+    int cx, cy;
+    unsigned char c;
 
     for(int i = 0; i < txt.length(); i++) {
         c = txt[i] - 32;
@@ -306,7 +307,7 @@ void drawText(int x, int y, string txt, sf::Color color) {
         cy = c / 16; cy *= 16;
 
         text.setTextureRect(sf::IntRect(cx, cy, 8, 16));
-        text.setPosition((float)x,(float)y);
+        text.setPosition((float)x, (float)y);
         buffer.draw(text);
         x += 8;
     }
