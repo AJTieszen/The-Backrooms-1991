@@ -964,7 +964,6 @@ void generateMap() {
                             if (i < 63 && walls[x1 + 1][y1] >= 15) wallForm |= 0b0100; // Right
                             if (j < 63 && walls[x1][y1 + 1] >= 15) wallForm |= 0b1000; // Down
 
-
                             switch (wallForm) /* Swap wall tiles to form appropriate connections */ {
                             case 0b0000: walls[x1][y1] = 47; break;
                             case 0b0001: walls[x1][y1] = 34; break;
@@ -982,11 +981,7 @@ void generateMap() {
                             case 0b1101: walls[x1][y1] = 41; break;
                             case 0b1110: walls[x1][y1] = 40; break;
                             case 0b1111: walls[x1][y1] = 37; break;
-
-                            default: cout << "Error";
                             }
-
-                            walls[x1][y1] += 16; // more visible walls for debugging
                         }
 
                         // Horizontal walls
@@ -1017,8 +1012,6 @@ void generateMap() {
                             case 0b1110: walls[x2][y2] = 40; break;
                             case 0b1111: walls[x2][y2] = 37; break;
                             }
-
-                            walls[x2][y2] += 16; // more visible walls for debugging
                          }
                     }
                 }
