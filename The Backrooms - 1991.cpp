@@ -954,6 +954,41 @@ void generateMap() {
                         y1 = j + 64 * cy;
                         y2 = i + 64 * cy;
 
+                        // Vertical walls
+                        if (walls[x1][y1] >= 15) {
+                            walls[x1][y1] = 64;
+                            wallForm = 0;
+
+                            if (i > 0 && walls[x1 - 1][y1] >= 15) wallForm |= 0b0001; // Left
+                            if (j > 0 && walls[x1][y1 - 1] >= 15) wallForm |= 0b0010; // Up
+                            if (i < 63 && walls[x1 + 1][y1] >= 15) wallForm |= 0b0100; // Right
+                            if (j < 63 && walls[x1][y1 + 1] >= 15) wallForm |= 0b1000; // Down
+
+
+                            switch (wallForm) /* Swap wall tiles to form appropriate connections */ {
+                            case 0b0000: walls[x1][y1] = 47; break;
+                            case 0b0001: walls[x1][y1] = 34; break;
+                            case 0b0010: walls[x1][y1] = 35; break;
+                            case 0b0011: walls[x1][y1] = 43; break;
+                            case 0b0100: walls[x1][y1] = 32; break;
+                            case 0b0101: walls[x1][y1] = 33; break;
+                            case 0b0110: walls[x1][y1] = 44; break;
+                            case 0b0111: walls[x1][y1] = 39; break;
+                            case 0b1000: walls[x1][y1] = 36; break;
+                            case 0b1001: walls[x1][y1] = 46; break;
+                            case 0b1010: walls[x1][y1] = 38; break;
+                            case 0b1011: walls[x1][y1] = 42; break;
+                            case 0b1100: walls[x1][y1] = 45; break;
+                            case 0b1101: walls[x1][y1] = 41; break;
+                            case 0b1110: walls[x1][y1] = 40; break;
+                            case 0b1111: walls[x1][y1] = 37; break;
+
+                            default: cout << "Error";
+                            }
+
+                            walls[x1][y1] += 16; // more visible walls for debugging
+                        }
+
                         // Horizontal walls
                         if (walls[x2][y2] >= 15) {
                             walls[x2][y2] = 64;
