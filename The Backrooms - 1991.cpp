@@ -1074,6 +1074,14 @@ void loadMapChunk(sf::Vector2i chunk) {
     stringstream filename;
     filename << "Map/Map_" << chunk.x << "_" << chunk.y << ".txt";
     loadTilemap(filename.str());
+
+    if (showDebugInfo) cout << "\nGenerating Cosmetic Wall layer";
+    for (int x = 0; x < 64; x++) {
+        for (int y = 0; y < 64; y++) {
+            if (tilemap[0][x][y] > 16) tilemap[1][x][y] = tilemap[0][x][y] - 16;
+            else tilemap[1][x][y] = 15;
+        }
+    }
 }
 
 // Game Screens
@@ -1590,6 +1598,9 @@ void mainGame() {
     if (playerObj.getPosition().x < 64) screenPos[0].x -= speed * frameScl;
     if (playerObj.getPosition().y > 144) screenPos[0].y += speed * frameScl;
     if (playerObj.getPosition().y < 64) screenPos[0].y -= speed * frameScl;
+    // Scroll cosmetic layer
+    screenPos[1].x = screenPos[0].x;
+    screenPos[1].y = screenPos[0].y + 16;
 
     // Load chunk upon reaching map's edge
     if (playerPos.x <= 8.f) {
@@ -1645,6 +1656,7 @@ void mainGame() {
     drawTilemapScroll(walls);
     playerObj.setPosition(playerPos + playerOffset - screenPos[0]);
     buffer.draw(playerObj);
+    drawTilemapScroll(walls, 1);
 
     drawStatusBars();
 
