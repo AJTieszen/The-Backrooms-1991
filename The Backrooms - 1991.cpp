@@ -98,6 +98,7 @@ void movePlayer(float speed);
 void movePlayer();
 
 void capStats();
+void drawStatusBars();
 
 void updateFrameTime();
 void updateScreen();
@@ -105,8 +106,8 @@ void update();
 
 // Game Functions
 void drawHighlightBox(int x, int y, int width);
-void drawStatusBars();
 void generateMap();
+void loadMap();
 void loadMapChunk(sf::Vector2i chunk);
 
 // Game Screens
@@ -816,112 +817,174 @@ void generateMap() {
     ifstream file("Text/MapGen.txt");
     
     // Preparing to generate map
-    buffer.clear(sf::Color::Black);
-    getline(file, line);
-    drawText(128 - line.length() * 4, 16, line, sf::Color::White);
-    update();
-
+    {
+        buffer.clear(sf::Color::Black);
+        getline(file, line);
+        drawText(128 - line.length() * 4, 16, line, sf::Color::White);
+        update();
+    }
     vector<vector<int>> walls(mapSize * 64, vector<int>(mapSize * 64, 0));
-    
     int x1, y1, x2, y2, tmp;
 
     // Building walls
-    buffer.clear(sf::Color::Black);
-    getline(file, line);
-    drawText(128 - line.length() * 4, 16, line, sf::Color::White);
-    update();
-    for (int cx = 0; cx < mapSize; cx ++) {
-        for (int cy = 0; cy < mapSize; cy++) {
-            if (showDebugInfo) cout << "\n     Chunk (" << cx << ", " << cy << ").";
+    {
+        buffer.clear(sf::Color::Black);
+        getline(file, line);
+        drawText(128 - line.length() * 4, 16, line, sf::Color::White);
+        update();
+        for (int cx = 0; cx < mapSize; cx++) {
+            for (int cy = 0; cy < mapSize; cy++) {
+                if (showDebugInfo) cout << "\n     Chunk (" << cx << ", " << cy << ").";
 
-            // Perimeter Walls
-            for (int i = 0; i < 64; i++) {
-                walls[i + 64 * cx][64 * cy] = 16;
-                walls[i + 64 * cx][63 + 64 * cy] = 16;
-                walls[64 * cx][i + 64 * cy] = 16;
-                walls[63 + 64 * cx][i + 64 * cy] = 16;
-            }
-
-            // Interior Walls
-            for (int i = 0; i < mapDensity; i++) {
-                x1 = rand() % 22 * 3;
-                y1 = rand() % 22 * 3;
-                x2 = rand() % 22 * 3;
-                y2 = rand() % 22 * 3;
-
-                if (x1 > x2) {
-                    tmp = x2;
-                    x2 = x1;
-                    x1 = tmp;
-                }
-                if (y1 > y2) {
-                    tmp = y2;
-                    y2 = y1;
-                    y1 = tmp;
+                // Perimeter Walls
+                for (int i = 0; i < 64; i++) {
+                    walls[i + 64 * cx][64 * cy] = 32;
+                    walls[i + 64 * cx][63 + 64 * cy] = 32;
+                    walls[64 * cx][i + 64 * cy] = 32;
+                    walls[63 + 64 * cx][i + 64 * cy] = 32;
                 }
 
-                for (int x = x1; x <= x2; x++) {
-                    walls[x + 64 * cx][y1 + 64 * cy] = 16;
-                    walls[x + 64 * cx][y2 + 64 * cy] = 16;
-                }
-                for (int y = y1; y <= y2; y++) {
-                    walls[x1 + 64 * cx][y + 64 * cy] = 16;
-                    walls[x2 + 64 * cx][y + 64 * cy] = 16;
+                // Interior Walls
+                for (int i = 0; i < mapDensity; i++) {
+                    x1 = rand() % 22 * 3;
+                    y1 = rand() % 22 * 3;
+                    x2 = rand() % 22 * 3;
+                    y2 = rand() % 22 * 3;
+
+                    if (x1 > x2) {
+                        tmp = x2;
+                        x2 = x1;
+                        x1 = tmp;
+                    }
+                    if (y1 > y2) {
+                        tmp = y2;
+                        y2 = y1;
+                        y1 = tmp;
+                    }
+
+                    for (int x = x1; x <= x2; x++) {
+                        walls[x + 64 * cx][y1 + 64 * cy] = 32;
+                        walls[x + 64 * cx][y2 + 64 * cy] = 32;
+                    }
+                    for (int y = y1; y <= y2; y++) {
+                        walls[x1 + 64 * cx][y + 64 * cy] = 32;
+                        walls[x2 + 64 * cx][y + 64 * cy] = 32;
+                    }
                 }
             }
         }
     }
 
     // Cutting doorways
-    buffer.clear(sf::Color::Black);
-    getline(file, line);
-    drawText(128 - line.length() * 4, 16, line, sf::Color::White);
-    update();
-    for (int cx = 0; cx <= mapSize; cx++) {
-        for (int cy = 0; cy <= mapSize; cy++) {
-            if (showDebugInfo) cout << "\n     Chunk (" << cx << ", " << cy << ").";
+    {
+        buffer.clear(sf::Color::Black);
+        getline(file, line);
+        drawText(128 - line.length() * 4, 16, line, sf::Color::White);
+        update();
+        for (int cx = 0; cx <= mapSize; cx++) {
+            for (int cy = 0; cy <= mapSize; cy++) {
+                if (showDebugInfo) cout << "\n     Chunk (" << cx << ", " << cy << ").";
 
-            // Perimeter Walls
-            for (int i = 0; i < 21; i++) {
-                // top and bottom
-                if (rand() % 100 < doorFreq && cx < mapSize) {
-                    if (cy < mapSize) {
-                        walls[i * 3 + cx * 64 + 1][cy * 64] = 0;
-                        walls[i * 3 + cx * 64 + 2][cy * 64] = 0;
+                // Perimeter Walls
+                for (int i = 0; i < 21; i++) {
+                    // top and bottom
+                    if (rand() % 100 < doorFreq && cx < mapSize) {
+                        if (cy < mapSize) {
+                            walls[i * 3 + cx * 64 + 1][cy * 64] = 0;
+                            walls[i * 3 + cx * 64 + 2][cy * 64] = 0;
+                        }
+                        if (cy > 0) {
+                            walls[i * 3 + cx * 64 + 1][cy * 64 - 1] = 0;
+                            walls[i * 3 + cx * 64 + 2][cy * 64 - 1] = 0;
+
+                        }
                     }
-                    if (cy > 0) {
-                        walls[i * 3 + cx * 64 + 1][cy * 64 - 1] = 0;
-                        walls[i * 3 + cx * 64 + 2][cy * 64 - 1] = 0;
-
+                    // left and right
+                    if (rand() % 100 < doorFreq && cy < mapSize) {
+                        if (cx < mapSize) {
+                            walls[cx * 64][i * 3 + cy * 64 + 1] = 0;
+                            walls[cx * 64][i * 3 + cy * 64 + 2] = 0;
+                        }
+                        if (cx > 0) {
+                            walls[cx * 64 - 1][i * 3 + cy * 64 + 1] = 0;
+                            walls[cx * 64 - 1][i * 3 + cy * 64 + 2] = 0;
+                        }
                     }
                 }
-                // left and right
-                if (rand() % 100 < doorFreq && cy < mapSize) {
-                    if (cx < mapSize) {
-                        walls[cx * 64][i * 3 + cy * 64 + 1] = 0;
-                        walls[cx * 64][i * 3 + cy * 64 + 2] = 0;
-                    }
-                    if (cx > 0) {
-                        walls[cx * 64 - 1][i * 3 + cy * 64 + 1] = 0;
-                        walls[cx * 64 - 1][i * 3 + cy * 64 + 2] = 0;
+
+                // Interior Walls
+                if (cx < mapSize && cy < mapSize) {
+                    for (int i = 1; i < 21; i++) {
+                        for (int j = 1; j < 21; j++) {
+                            // horizontal
+                            if (rand() % 100 < doorFreq && cx < mapSize) {
+                                walls[i * 3 + cx * 64 + 1][j * 3 + cy * 64] = 0;
+                                walls[i * 3 + cx * 64 + 2][j * 3 + cy * 64] = 0;
+                            }
+                            // vertical
+                            if (rand() % 100 < doorFreq && cx < mapSize) {
+                                walls[i * 3 + cx * 64][j * 3 + cy * 64 + 1] = 0;
+                                walls[i * 3 + cx * 64][j * 3 + cy * 64 + 2] = 0;
+                            }
+                        }
                     }
                 }
             }
+        }
+    }
 
-            // Interior Walls
-            if (cx < mapSize && cy < mapSize) {
-                for (int i = 1; i < 21; i++) {
-                    for (int j = 1; j < 21; j++) {
-                        // horizontal
-                        if (rand() % 100 < doorFreq && cx < mapSize) {
-                            walls[i * 3 + cx * 64 + 1][j * 3 + cy * 64] = 0;
-                            walls[i * 3 + cx * 64 + 2][j * 3 + cy * 64] = 0;
-                        }
-                        // vertical
-                        if (rand() % 100 < doorFreq && cx < mapSize) {
-                            walls[i * 3 + cx * 64][j * 3 + cy * 64 + 1] = 0;
-                            walls[i * 3 + cx * 64][j * 3 + cy * 64 + 2] = 0;
-                        }
+    // Updating map graphics
+    {
+        buffer.clear(sf::Color::Black);
+        getline(file, line);
+        drawText(128 - line.length() * 4, 16, line, sf::Color::White);
+        update();
+
+        int x1, x2, y1, y2;
+        unsigned char wallForm;
+
+        for (int cx = 0; cx < mapSize; cx++) {
+            for (int cy = 0; cy < mapSize; cy++) {
+                if (showDebugInfo) cout << "\n     Chunk (" << cx << ", " << cy << ").";
+
+                for (int i = 0; i < 64; i += 3) {
+                    for (int j = 0; j < 64; j++) {
+                        x1 = i + 64 * cx;
+                        x2 = j + 64 * cx;
+                        y1 = j + 64 * cy;
+                        y2 = i + 64 * cy;
+
+                        // Horizontal walls
+                        if (walls[x2][y2] >= 15) {
+                            walls[x2][y2] = 64;
+                            wallForm = 0;
+
+                            if (j >  0 && walls[x2 - 1][y2] >= 15) wallForm |= 0b0001; // Left
+                            if (i >  0 && walls[x2][y2 - 1] >= 15) wallForm |= 0b0010; // Up
+                            if (j < 63 && walls[x2 + 1][y2] >= 15) wallForm |= 0b0100; // Right
+                            if (i < 63 && walls[x2][y2 + 1] >= 15) wallForm |= 0b1000; // Down
+
+                            switch (wallForm) /* Swap wall tiles to form appropriate connections */ {
+                            case 0b0000: walls[x2][y2] = 47; break;
+                            case 0b0001: walls[x2][y2] = 34; break;
+                            case 0b0010: walls[x2][y2] = 35; break;
+                            case 0b0011: walls[x2][y2] = 43; break;
+                            case 0b0100: walls[x2][y2] = 32; break;
+                            case 0b0101: walls[x2][y2] = 33; break;
+                            case 0b0110: walls[x2][y2] = 44; break;
+                            case 0b0111: walls[x2][y2] = 39; break;
+                            case 0b1000: walls[x2][y2] = 36; break;
+                            case 0b1001: walls[x2][y2] = 46; break;
+                            case 0b1010: walls[x2][y2] = 38; break;
+                            case 0b1011: walls[x2][y2] = 42; break;
+                            case 0b1100: walls[x2][y2] = 45; break;
+                            case 0b1101: walls[x2][y2] = 41; break;
+                            case 0b1110: walls[x2][y2] = 40; break;
+                            case 0b1111: walls[x2][y2] = 37; break;
+                            }
+
+                            walls[x2][y2] += 16; // more visible walls for debugging
+                         }
                     }
                 }
             }
@@ -929,32 +992,34 @@ void generateMap() {
     }
 
     // Saving map
-    buffer.clear(sf::Color::Black);
-    getline(file, line);
-    drawText(128 - line.length() * 4, 16, line, sf::Color::White);
-    update();
-    fs::create_directory("Map");
+    {
+        buffer.clear(sf::Color::Black);
+        getline(file, line);
+        drawText(128 - line.length() * 4, 16, line, sf::Color::White);
+        update();
+        fs::create_directory("Map");
 
-    for (int cx = 0; cx < mapSize; cx++) {
-        for (int cy = 0; cy < mapSize; cy++) {
-            if (showDebugInfo) cout << "\nSaving Chunk (" << cx << ", " << cy << ").";
+        for (int cx = 0; cx < mapSize; cx++) {
+            for (int cy = 0; cy < mapSize; cy++) {
+                if (showDebugInfo) cout << "\nSaving Chunk (" << cx << ", " << cy << ").";
 
-            stringstream filename;
-            filename << "Map/Map_" << cx << "_" << cy << ".txt";
+                stringstream filename;
+                filename << "Map/Map_" << cx << "_" << cy << ".txt";
 
-            ofstream file;
-            file.open(filename.str());
-            file << "tileswide 64\ntileshigh 64\ntilewidth 16\ntileheight 16\n\nlayer 0\n";
-            for (int y = 0; y < 64; y++) {
-                for (int x = 0; x < 64; x++) {
-                    file << walls[64 * cx + x][64 * cy + y] << ",";
+                ofstream file;
+                file.open(filename.str());
+                file << "tileswide 64\ntileshigh 64\ntilewidth 16\ntileheight 16\n\nlayer 0\n";
+                for (int y = 0; y < 64; y++) {
+                    for (int x = 0; x < 64; x++) {
+                        file << walls[64 * cx + x][64 * cy + y] << ",";
+                    }
+                    file << "\n";
                 }
-                file << "\n";
             }
         }
-    }
 
-    file.close();
+        file.close();
+    }
 }
 void loadMap() {
     if (showDebugInfo) cout << "\nLoading map...";

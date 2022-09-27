@@ -361,3 +361,4 @@ FodyWeavers.xsd
 /x64/Release/Map
 /x64/Release/player.dat
 *.dat
+/Output-Debug.txt
