@@ -196,12 +196,50 @@ public:
 
     }
     void save() {
-        cout << "Saving Enemy # " << id;
+        if (showDebugInfo) cout << "Saving Enemy # " << id;
         fs::create_directory("Enemies");
 
         stringstream filename;
-        filename << "Enemies_" << id << ".dat";
+        filename << "Enemies/Enemy_" << id << ".dat";
+        ofstream file(filename.str());
+
+        file << "chunk_x: " << eChunk.x;
+        file << "\nchunk_y: " << eChunk.y;
+        file << "\npos_x: " << ePos.x;
+        file << "\npos_y: " << ePos.y;
     }
+    void load(int newId) {
+        if (showDebugInfo) cout << "loading Enemy # " << id;
+        stringstream filename;
+        filename << "Enemies/Enemy_" << newId << ".dat";
+        cout << filename.str();
+        ifstream file(filename.str());
+        string line;
+
+        string expectedLabels[] = { "chunk_x:", "chunk_y:", "pos_x:", "pos_y:" };
+        float values[4];
+
+        id = newId;
+
+        if (file.is_open()) {
+            for (int i = 0; i < 4; i++) {
+                getline(file, line, ' ');
+                cout << "\n" << line;
+                if (line != expectedLabels[i]) cout << "\nWarining: enemy data may not be formatted correctly (enemy " << id << ", line " << i + 1 << ").";
+                getline(file, line);
+                cout << "\n" << line;
+                values[i] = stof(line);
+            }
+
+            eChunk.x = values[0];
+            eChunk.y = values[1];
+            ePos.x = values[2];
+            ePos.y = values[3];
+        }
+    }
+
+    // Very dumb AI for testing
+    void chase_player)
 };
 Enemy enemy;
 
@@ -745,6 +783,9 @@ void loadPlayerStatus() {
 void saveEnemies() {
     fs::remove_all("Enemy");
     enemy.save();
+}
+void loadEnemies() {
+    enemy.load(0);
 }
 
 void movePlayer(float speed, int layer) {
@@ -1533,6 +1574,7 @@ void gameSettings(){
             }
 
             loadMapChunk(chunk);
+            enemy.load(0);
             screen = 10;
 
             break;
