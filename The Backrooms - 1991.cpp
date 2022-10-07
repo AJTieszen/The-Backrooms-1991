@@ -18,7 +18,7 @@ bool noClip = false;
 
 // Game variables
 sf::Vector2f screenPos[4], playerPos;
-const sf::Vector2f playerOffset(-8.f, -24.f);
+const sf::Vector2f chunkOffset(-8.f, -24.f);
 sf::Vector2i chunk;
 
 // Player Stats
@@ -128,9 +128,79 @@ void death();
 
 
 
+// Classes
+class Enemy {
+private:
+    sf::Vector2f ePos;
+    sf::Vector2i eChunk;
+
+    int id;
+
+public:
+    void test() {
+        cout << "\nchunk    : (" << eChunk.x << "," << eChunk.y << ")";
+        cout << "\nposition : (" << ePos.x << "," << ePos.y << ")";
+    }
+
+    void setPosition(sf::Vector2f newPos) {
+        ePos = newPos;
+    }
+    void setPosition(float x, float y) {
+        ePos = sf::Vector2f(x, y);
+    }
+
+    void setChunk(sf::Vector2i newChunk) {
+        eChunk = newChunk;
+    }
+    void setChunk(int x, int y) {
+        setChunk(sf::Vector2i(x, y));
+    }
+
+    void draw() {
+        // Don't bother for enemies in different chunk
+        if (eChunk != chunk) return;
+
+        // Calculate position
+        sf::RectangleShape enemyObj(sf::Vector2f(16.f, 32.f));
+        enemyObj.setPosition(sf::Vector2f(ePos + chunkOffset - screenPos[0]));
+        enemyObj.setOutlineColor(sf::Color::Red);
+        enemyObj.setFillColor(sf::Color(0, 0, 0, 0));
+        enemyObj.setOutlineThickness(1);
+
+        // Draw enemy
+        buffer.draw(enemyObj);
+    }
+
+    void damagePlayer() {
+        // Don't bother for enemies in different chunk
+        if (eChunk != chunk) return;
+        
+        // Calculate damage
+        float dx = ePos.x - playerPos.x;
+        float dy = ePos.y - playerPos.y;
+        float dist = sqrt(dx * dx + dy *dy);
+
+        // Apply damage, knockback
+        if (dist < 16) {
+            health--;
+
+            // Knockback
+            if (playerPos.y > ePos.y + 6) playerPos.y += 10;
+            if (playerPos.y < ePos.y - 6) playerPos.y -= 10;
+            if (playerPos.x > ePos.x + 6) playerPos.x += 10;
+            if (playerPos.x < ePos.x - 6) playerPos.x -= 10;
+        }
+
+    }
+};
+Enemy enemy;
+
 int main() {
     // Print startup info to terminal
     cout << "Opening " << title << ". Press TAB to show debug information and frame rate.\n";
+
+    
+    enemy.test ();
 
     // Create window
     if(showDebugInfo) cout << "Creating window...";
@@ -1457,7 +1527,7 @@ void gameSettings(){
             mapDensity = 20 + 5 * mapSettings[1];
             doorFreq = 35 - 5 * mapSettings[2];
 
-            playerPos = { 512.f, 512.5 };
+            playerPos = { 512.f, 512.f };
             screenPos[0] = { 385, 400 };
 
             generateMap();
@@ -1469,6 +1539,11 @@ void gameSettings(){
             remove("Player.dat");
             health = maxHealth;
             stamina = maxStamina;
+
+            // "spawn" monster (will be own function)
+            enemy.setChunk(chunk.x, chunk.y);
+            enemy.setPosition(512.f, 512.f - 32.f);
+            enemy.test();
 
             break;
         }
@@ -1583,6 +1658,9 @@ void mainGame() {
     }
     movePlayer(speed);
 
+    // Damage player on contact with enemy
+    enemy.damagePlayer();
+
     // Debug
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Equal) && inputTimer == 0) {
         health++;
@@ -1654,7 +1732,9 @@ void mainGame() {
 
     // Render graphics
     drawTilemapScroll(walls);
-    playerObj.setPosition(playerPos + playerOffset - screenPos[0]);
+    playerObj.setPosition(playerPos + chunkOffset - screenPos[0]);
+
+    enemy.draw();
     buffer.draw(playerObj);
     drawTilemapScroll(walls, 1);
 
@@ -1728,4 +1808,5 @@ void death() {
 }
 
 // Screen effects
+
 
