@@ -134,7 +134,7 @@ private:
     sf::Vector2f ePos;
     sf::Vector2i eChunk;
 
-    int id;
+    int id, angle;
 
 public:
     void test() {
@@ -154,6 +154,9 @@ public:
     }
     void setChunk(int x, int y) {
         setChunk(sf::Vector2i(x, y));
+    }
+    void setId(int newId) {
+        id = newId;
     }
 
     void draw() {
@@ -191,6 +194,13 @@ public:
             if (playerPos.x < ePos.x - 6) playerPos.x -= 10;
         }
 
+    }
+    void save() {
+        cout << "Saving Enemy # " << id;
+        fs::create_directory("Enemies");
+
+        stringstream filename;
+        filename << "Enemies_" << id << ".dat";
     }
 };
 Enemy enemy;
@@ -732,6 +742,10 @@ void loadPlayerStatus() {
     }
 
 }
+void saveEnemies() {
+    fs::remove_all("Enemy");
+    enemy.save();
+}
 
 void movePlayer(float speed, int layer) {
     const int strictness = 5;
@@ -1102,7 +1116,7 @@ void generateMap() {
                 if (showDebugInfo) cout << "\nSaving Chunk (" << cx << ", " << cy << ").";
 
                 stringstream filename;
-                filename << "Map/Map_" << cx << "_" << cy << ".txt";
+                filename << "Map/Map_" << cx << "_" << cy << ".dat";
 
                 ofstream file;
                 file.open(filename.str());
@@ -1130,7 +1144,7 @@ void loadMap() {
     while (!sizeReached) {
         mapSize++;
 
-        filename = "Map/Map_" + to_string(mapSize) + "_" + to_string(mapSize) + ".txt";
+        filename = "Map/Map_" + to_string(mapSize) + "_" + to_string(mapSize) + ".dat";
         if (showDebugInfo) cout << "\n     " << filename;
 
         if (!fs::exists(filename)) sizeReached = true;
@@ -1142,7 +1156,7 @@ void loadMap() {
 void loadMapChunk(sf::Vector2i chunk) {
     if (showDebugInfo) cout << "\nLoading Chunk: (" << chunk.x << ", " << chunk.y << ")";
     stringstream filename;
-    filename << "Map/Map_" << chunk.x << "_" << chunk.y << ".txt";
+    filename << "Map/Map_" << chunk.x << "_" << chunk.y << ".dat";
     loadTilemap(filename.str());
 
     if (showDebugInfo) cout << "\nGenerating Cosmetic Wall layer";
@@ -1454,7 +1468,7 @@ void gameSettings(){
     ifstream file("Text/Game Setup.txt");
 
     // Check Map Existence
-    bool mapExists = fs::exists("Map/Map_0_0.txt");
+    bool mapExists = fs::exists("Map/Map_0_0.dat");
 
     
     // Draw Text
@@ -1612,10 +1626,10 @@ void pauseMenu() {
         switch (selection) {
         case 0: // Resume
             screen = 10;
-
             break;
         case 1: // Save
             savePlayerStatus();
+            saveEnemies();
             break;
         case 2: // Options
             screen = -10;
