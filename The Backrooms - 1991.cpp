@@ -17,7 +17,7 @@ namespace fs = std::filesystem;
 bool noClip = false;
 
 // Game variables
-sf::Vector2f screenPos[4], playerPos;
+sf::Vector2f screenPos[4], pPos;
 const sf::Vector2f chunkOffset(-8.f, -24.f);
 sf::Vector2i chunk;
 
@@ -43,7 +43,7 @@ bool showDebugInfo = false, toggleDebugInfo = false, wallDensity = 60;
 enum keys { up, dn, lt, rt, start, slct, a, b, x, y, lb, rb};
 int ctrlMap[] = {-1, -1, 1, -1, 7, 6, 0, 1, 2, 3, 4, 5}; // jst y inv, jst x inv, dpad x inv, dpad y inv, start, slct, a, b, x, y, lb, rb
 
-int scale = 200, aspectRatio = 0, maxFrameRate = 0, frameRateIndex = 0;
+int scale = 200, aspectRatio = 0, maxFrameRate = 0, frameRateIndex = 0, fov = 40, vignetteStep = 2;
 bool showScanlines, blur;
 const int stdFrameRate[] = { 0, 30, 60, 75, 120, 144, 240, 360, 0}; // 0 = V-Sync
 
@@ -125,8 +125,7 @@ void victory();
 void death();
 
 // Screen Effects
-
-
+void vignette();
 
 // Classes
 class Enemy {
@@ -174,27 +173,6 @@ public:
         buffer.draw(enemyObj);
     }
 
-    void damagePlayer() {
-        // Don't bother for enemies in different chunk
-        if (eChunk != chunk) return;
-        
-        // Calculate damage
-        float dx = ePos.x - playerPos.x;
-        float dy = ePos.y - playerPos.y;
-        float dist = sqrt(dx * dx + dy *dy);
-
-        // Apply damage, knockback
-        if (dist < 16) {
-            health--;
-
-            // Knockback
-            if (playerPos.y > ePos.y + 6) playerPos.y += 10;
-            if (playerPos.y < ePos.y - 6) playerPos.y -= 10;
-            if (playerPos.x > ePos.x + 6) playerPos.x += 10;
-            if (playerPos.x < ePos.x - 6) playerPos.x -= 10;
-        }
-
-    }
     void save() {
         if (showDebugInfo) cout << "Saving Enemy # " << id;
         fs::create_directory("Enemies");
@@ -238,8 +216,37 @@ public:
         }
     }
 
-    // Very dumb AI for testing
-    void chase_player)
+    // Very basic AI for testing
+    void chasePlayer() {
+        // Pursue in current chunk
+        if (eChunk == chunk) {
+            if (pPos.x > ePos.x) ePos.x += 0.25 * frameScl;
+            if (pPos.x < ePos.x) ePos.x -= 0.25 * frameScl;
+            if (pPos.y > ePos.y) ePos.y += 0.25 * frameScl;
+            if (pPos.y < ePos.y) ePos.y -= 0.25 * frameScl;
+        }
+    }
+    void damagePlayer() {
+        // Don't bother for enemies in different chunk
+        if (eChunk != chunk) return;
+
+        // Calculate damage
+        float dx = ePos.x - pPos.x;
+        float dy = ePos.y - pPos.y;
+        float dist = sqrt(dx * dx + dy * dy);
+
+        // Apply damage, knockback
+        if (dist < 16) {
+            health--;
+
+            // Knockback
+            if (pPos.y > ePos.y + 6) pPos.y += 4;
+            if (pPos.y < ePos.y - 6) pPos.y -= 4;
+            if (pPos.x > ePos.x + 6) pPos.x += 4;
+            if (pPos.x < ePos.x - 6) pPos.x -= 4;
+        }
+
+    }
 };
 Enemy enemy;
 
@@ -736,8 +743,8 @@ void savePlayerStatus() {
     file.open("player.dat");
     file << "Chunk_X:  " << chunk.x;
     file << "\nChunk_Y:  " << chunk.y;
-    file << "\nPlayer_X: " << playerPos.x;
-    file << "\nPlayer_Y: " << playerPos.y;
+    file << "\nPlayer_X: " << pPos.x;
+    file << "\nPlayer_Y: " << pPos.y;
     file << "\nCamera_X: " << screenPos[0].x;
     file << "\nCamera_Y: " << screenPos[0].y;
     file << "\nStamina: " << stamina;
@@ -764,8 +771,8 @@ void loadPlayerStatus() {
 
         chunk.x = values[0];
         chunk.y = values[1];
-        playerPos.x = values[2];
-        playerPos.y = values[3];
+        pPos.x = values[2];
+        pPos.y = values[3];
         screenPos[0].x = values[4];
         screenPos[0].y = values[5];
         stamina = values[6];
@@ -774,7 +781,7 @@ void loadPlayerStatus() {
         maxHealth= values[9];
     }
     else {
-        playerPos = { 512.f, 512.5 };
+        pPos = { 512.f, 512.5 };
         screenPos[0] = { 385, 400 };
         chunk.x = chunk.y = mapSize / 2;
     }
@@ -790,33 +797,33 @@ void loadEnemies() {
 
 void movePlayer(float speed, int layer) {
     const int strictness = 5;
-    int gridPosX = playerPos.x / 16;
-    int gridPosY = playerPos.y / 16;
+    int gridPosX = pPos.x / 16;
+    int gridPosY = pPos.y / 16;
     bool clrUp = true, clrDn = true, clrLt = true, clrRt = true;
 
     // move character Up / Down
-    if (pressed[up] && clrUp) playerPos.y -= speed * frameScl;
-    if (pressed[dn] && clrDn) playerPos.y += speed * frameScl;
+    if (pressed[up] && clrUp) pPos.y -= speed * frameScl;
+    if (pressed[dn] && clrDn) pPos.y += speed * frameScl;
 
-    if ((tilemap[layer][(int)(playerPos.x + strictness) / 16][(int)(playerPos.y - 8) / 16] >= solidWallId)
-        || (tilemap[layer][(int)(playerPos.x - strictness) / 16][(int)(playerPos.y - 8) / 16] >= solidWallId))
-        playerPos.y = gridPosY * 16 + 8;
-    if ((tilemap[layer][(int)(playerPos.x + strictness) / 16][(int)(playerPos.y + 8) / 16] >= solidWallId)
-        || (tilemap[layer][(int)(playerPos.x - strictness) / 16][(int)(playerPos.y + 8) / 16] >= solidWallId))
-        playerPos.y = gridPosY * 16 + 8;
+    if ((tilemap[layer][(int)(pPos.x + strictness) / 16][(int)(pPos.y - 8) / 16] >= solidWallId)
+        || (tilemap[layer][(int)(pPos.x - strictness) / 16][(int)(pPos.y - 8) / 16] >= solidWallId))
+        pPos.y = gridPosY * 16 + 8;
+    if ((tilemap[layer][(int)(pPos.x + strictness) / 16][(int)(pPos.y + 8) / 16] >= solidWallId)
+        || (tilemap[layer][(int)(pPos.x - strictness) / 16][(int)(pPos.y + 8) / 16] >= solidWallId))
+        pPos.y = gridPosY * 16 + 8;
 
     // Move Character Left / Right
-    if (pressed[lt] && clrLt) playerPos.x -= speed * frameScl;
-    if (pressed[rt] && clrRt) playerPos.x += speed * frameScl;
+    if (pressed[lt] && clrLt) pPos.x -= speed * frameScl;
+    if (pressed[rt] && clrRt) pPos.x += speed * frameScl;
 
     // push character out of wall
     if (!noClip) {
-        if ((tilemap[layer][(int)(playerPos.x - 8) / 16][(int)(playerPos.y + strictness) / 16] >= solidWallId)
-            || (tilemap[layer][(int)(playerPos.x - 8) / 16][(int)(playerPos.y - strictness) / 16] >= solidWallId))
-            playerPos.x = gridPosX * 16 + 8;
-        if ((tilemap[layer][(int)(playerPos.x + 6) / 16][(int)(playerPos.y + strictness) / 16] >= solidWallId)
-            || (tilemap[layer][(int)(playerPos.x + 6) / 16][(int)(playerPos.y - strictness) / 16] >= solidWallId))
-            playerPos.x = gridPosX * 16 + 10;
+        if ((tilemap[layer][(int)(pPos.x - 8) / 16][(int)(pPos.y + strictness) / 16] >= solidWallId)
+            || (tilemap[layer][(int)(pPos.x - 8) / 16][(int)(pPos.y - strictness) / 16] >= solidWallId))
+            pPos.x = gridPosX * 16 + 8;
+        if ((tilemap[layer][(int)(pPos.x + 6) / 16][(int)(pPos.y + strictness) / 16] >= solidWallId)
+            || (tilemap[layer][(int)(pPos.x + 6) / 16][(int)(pPos.y - strictness) / 16] >= solidWallId))
+            pPos.x = gridPosX * 16 + 10;
     }
 }
 void movePlayer(float speed) {
@@ -1568,7 +1575,7 @@ void gameSettings(){
                 loadPlayerStatus();
             }
             else {
-                playerPos = { 512.f, 512.5 };
+                pPos = { 512.f, 512.5 };
                 screenPos[0] = { 385, 400 };
                 chunk.x = chunk.y = mapSize / 2;
             }
@@ -1583,7 +1590,7 @@ void gameSettings(){
             mapDensity = 20 + 5 * mapSettings[1];
             doorFreq = 35 - 5 * mapSettings[2];
 
-            playerPos = { 512.f, 512.f };
+            pPos = { 512.f, 512.f };
             screenPos[0] = { 385, 400 };
 
             generateMap();
@@ -1714,8 +1721,9 @@ void mainGame() {
     }
     movePlayer(speed);
 
-    // Damage player on contact with enemy
+    // Enemy Behavior
     enemy.damagePlayer();
+    enemy.chasePlayer();
 
     // Debug
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Equal) && inputTimer == 0) {
@@ -1737,7 +1745,7 @@ void mainGame() {
     screenPos[1].y = screenPos[0].y + 16;
 
     // Load chunk upon reaching map's edge
-    if (playerPos.x <= 8.f) {
+    if (pPos.x <= 8.f) {
         chunk.x--;
         if (chunk.x < 0) {
             screen = 20; // Victory
@@ -1745,11 +1753,11 @@ void mainGame() {
         }
         else {
             loadMapChunk(chunk);
-            playerPos.x = 1015;
+            pPos.x = 1015;
             screenPos[0].x += 1015;
         }
     }
-    if (playerPos.x >= 1016.f) {
+    if (pPos.x >= 1016.f) {
         chunk.x++;
         if (chunk.x >= mapSize) {
             screen = 20; // Victory
@@ -1757,11 +1765,11 @@ void mainGame() {
         }
         else {
             loadMapChunk(chunk);
-            playerPos.x = 9;
+            pPos.x = 9;
             screenPos[0].x -= 1015;
         }
     }
-    if (playerPos.y <= 8.f) {
+    if (pPos.y <= 8.f) {
         chunk.y--;
         if (chunk.y < 0) {
             screen = 20; // Victory
@@ -1769,11 +1777,11 @@ void mainGame() {
         }
         else {
             loadMapChunk(chunk);
-            playerPos.y = 1015;
+            pPos.y = 1015;
             screenPos[0].y += 1015;
         }
     }
-    if (playerPos.y >= 1016.f) {
+    if (pPos.y >= 1016.f) {
         chunk.y++;
         if (chunk.y >= mapSize) {
             screen = 20; // Victory
@@ -1781,19 +1789,23 @@ void mainGame() {
         }
         else {
             loadMapChunk(chunk);
-            playerPos.y = 9;
+            pPos.y = 9;
             screenPos[0].y -= 1015;
         }
     }
 
     // Render graphics
     drawTilemapScroll(walls);
-    playerObj.setPosition(playerPos + chunkOffset - screenPos[0]);
+    playerObj.setPosition(pPos + chunkOffset - screenPos[0]);
 
     enemy.draw();
     buffer.draw(playerObj);
     drawTilemapScroll(walls, 1);
 
+    // Screen effects
+    vignette();
+
+    // UI
     drawStatusBars();
 
     // Pause Menu
@@ -1864,5 +1876,18 @@ void death() {
 }
 
 // Screen effects
+void vignette() {
+    sf::CircleShape circ;
+    circ.setFillColor(sf::Color(0, 0, 0, 0));
+    circ.setOutlineColor(sf::Color(0, 0, 0, 5 * vignetteStep));
 
+    sf::Vector2f center = playerObj.getPosition() + sf::Vector2f(8.f, 16.f);
+
+    for (int i = fov; i < 172; i += vignetteStep) {
+        circ.setPosition(center - sf::Vector2f(i, i));
+        circ.setRadius(i);
+        circ.setOutlineThickness(255 - i);
+        buffer.draw(circ);
+    }
+}
 
