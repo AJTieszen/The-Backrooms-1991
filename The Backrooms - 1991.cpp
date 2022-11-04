@@ -43,7 +43,7 @@ bool showDebugInfo = false, toggleDebugInfo = false, wallDensity = 60;
 enum keys { up, dn, lt, rt, start, slct, a, b, x, y, lb, rb};
 int ctrlMap[] = {-1, -1, 1, -1, 7, 6, 0, 1, 2, 3, 4, 5}; // jst y inv, jst x inv, dpad x inv, dpad y inv, start, slct, a, b, x, y, lb, rb
 
-int scale = 200, aspectRatio = 0, maxFrameRate = 0, frameRateIndex = 0, fov = 40, vignetteStep = 2;
+int scale = 200, aspectRatio = 0, maxFrameRate = 0, frameRateIndex = 0, fov = 0, vignetteStep = 2, vignetteIntens = 5;
 bool showScanlines, blur;
 const int stdFrameRate[] = { 0, 30, 60, 75, 120, 144, 240, 360, 0}; // 0 = V-Sync
 
@@ -127,7 +127,7 @@ void death();
 // Screen Effects
 void vignette();
 
-// Classes
+// Enemies
 class Enemy {
 private:
     sf::Vector2f ePos;
@@ -558,6 +558,13 @@ void MapControls() {
 
     string line;
     ifstream file("Text/Map Controls.txt");
+
+    // Skip Unavailable buttons
+    if (inputTimer == 0 && sf::Keyboard::isKeyPressed(sf::Keyboard::Escape)) {
+        inputTimer = 250;
+        mappedButtons++;
+    }
+
     if (file.is_open()) {
         for (int i = 0; i <= mappedButtons; i++) getline(file, line);
         drawText(128 - 4 * (int)line.length(), 16, line, sf::Color::White);
@@ -1879,7 +1886,7 @@ void death() {
 void vignette() {
     sf::CircleShape circ;
     circ.setFillColor(sf::Color(0, 0, 0, 0));
-    circ.setOutlineColor(sf::Color(0, 0, 0, 5 * vignetteStep));
+    circ.setOutlineColor(sf::Color(0, 0, 0, vignetteIntens * vignetteStep));
 
     sf::Vector2f center = playerObj.getPosition() + sf::Vector2f(8.f, 16.f);
 
