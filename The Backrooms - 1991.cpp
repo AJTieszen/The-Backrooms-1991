@@ -196,7 +196,6 @@ public:
         if (file.is_open()) {
             for (int i = 0; i < 4; i++) {
                 getline(file, line, ' ');
-                cout << "\n" << line;
                 if (line != expectedLabels[i]) cout << "\nWarining: enemy data may not be formatted correctly (enemy " << id << ", line " << i + 1 << ").";
                 getline(file, line);
                 values[i] = stof(line);
