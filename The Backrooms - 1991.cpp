@@ -819,7 +819,7 @@ void spawnEnemies() {
     for (int i = 0; i < numEnemies; i++) {
         enemies.push_back(Enemy());
         enemies[i].setId(i);
-        enemies[i].setChunk(chunk.x, chunk.y);
+        enemies[i].setChunk(rand() % mapSize, rand() % mapSize);
         enemies[i].setPosition((rand() % 23) * 48 + 32, (rand() % 23) * 48 + 32);
     }
 }
@@ -1631,6 +1631,9 @@ void gameSettings(){
             remove("Player.dat");
             health = maxHealth;
             stamina = maxStamina;
+            numEnemies = 5 + 5 * (mapSettings[2] + 1) * mapSize * mapSize;
+            cout << "\n" << numEnemies;
+            cout << "\n" << numEnemies / (mapSize * mapSize);
             spawnEnemies();
 
             break;
