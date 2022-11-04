@@ -133,14 +133,9 @@ private:
     sf::Vector2f ePos;
     sf::Vector2i eChunk;
 
-    int id, angle;
+    int id;
 
 public:
-    void test() {
-        cout << "\nchunk    : (" << eChunk.x << "," << eChunk.y << ")";
-        cout << "\nposition : (" << ePos.x << "," << ePos.y << ")";
-    }
-
     void setPosition(sf::Vector2f newPos) {
         ePos = newPos;
     }
@@ -190,7 +185,6 @@ public:
         if (showDebugInfo) cout << "loading Enemy # " << id;
         stringstream filename;
         filename << "Enemies/Enemy_" << newId << ".dat";
-        cout << filename.str();
         ifstream file(filename.str());
         string line;
 
@@ -205,7 +199,6 @@ public:
                 cout << "\n" << line;
                 if (line != expectedLabels[i]) cout << "\nWarining: enemy data may not be formatted correctly (enemy " << id << ", line " << i + 1 << ").";
                 getline(file, line);
-                cout << "\n" << line;
                 values[i] = stof(line);
             }
 
@@ -248,14 +241,14 @@ public:
 
     }
 };
-Enemy enemy;
+vector<Enemy> enemies;
+int numEnemies = 50;
+
+
 
 int main() {
     // Print startup info to terminal
     cout << "Opening " << title << ". Press TAB to show debug information and frame rate.\n";
-
-    
-    enemy.test ();
 
     // Create window
     if(showDebugInfo) cout << "Creating window...";
@@ -796,10 +789,40 @@ void loadPlayerStatus() {
 }
 void saveEnemies() {
     fs::remove_all("Enemy");
-    enemy.save();
+    for (int i = 0; i < numEnemies; i++) {
+        enemies[i].save();
+    }
 }
 void loadEnemies() {
-    enemy.load(0);
+    if (showDebugInfo) cout << "\nLoading enemies...";
+
+    string filename;
+    bool sizeReached = false;
+    enemies.clear();
+    
+    numEnemies = 0;
+    while (!sizeReached) {
+        filename = "Enemies/Enemy_" + to_string(numEnemies) + ".dat";
+        if (showDebugInfo) cout << "\n     " << filename;
+
+        if (!fs::exists(filename)) sizeReached = true;
+
+        enemies.push_back(Enemy());
+        enemies[numEnemies].load(numEnemies);
+        numEnemies++;
+    }
+
+    numEnemies--;
+    if (showDebugInfo) cout << "\n   " << numEnemies << " enemies loaded.";
+}
+void spawnEnemies() {
+    enemies.clear();
+    for (int i = 0; i < numEnemies; i++) {
+        enemies.push_back(Enemy());
+        enemies[i].setId(i);
+        enemies[i].setChunk(chunk.x, chunk.y);
+        enemies[i].setPosition((rand() % 23) * 48 + 32, (rand() % 23) * 48 + 32);
+    }
 }
 
 void movePlayer(float speed, int layer) {
@@ -1588,7 +1611,7 @@ void gameSettings(){
             }
 
             loadMapChunk(chunk);
-            enemy.load(0);
+            loadEnemies();
             screen = 10;
 
             break;
@@ -1609,11 +1632,7 @@ void gameSettings(){
             remove("Player.dat");
             health = maxHealth;
             stamina = maxStamina;
-
-            // "spawn" monster (will be own function)
-            enemy.setChunk(chunk.x, chunk.y);
-            enemy.setPosition(512.f, 512.f - 32.f);
-            enemy.test();
+            spawnEnemies();
 
             break;
         }
@@ -1729,8 +1748,10 @@ void mainGame() {
     movePlayer(speed);
 
     // Enemy Behavior
-    enemy.damagePlayer();
-    enemy.chasePlayer();
+    for (int i = 0; i < numEnemies; i++) {
+        enemies[i].damagePlayer();
+        enemies[i].chasePlayer();
+    }
 
     // Debug
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Equal) && inputTimer == 0) {
@@ -1804,8 +1825,10 @@ void mainGame() {
     // Render graphics
     drawTilemapScroll(walls);
     playerObj.setPosition(pPos + chunkOffset - screenPos[0]);
+    for (int i = 0; i < numEnemies; i++) {
+        enemies[i].draw();
 
-    enemy.draw();
+    }
     buffer.draw(playerObj);
     drawTilemapScroll(walls, 1);
 
