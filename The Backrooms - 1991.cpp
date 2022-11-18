@@ -72,9 +72,11 @@ sf::Texture settings;
 
 sf::Texture walls;
 sf::Texture player;
+sf::Texture enemy;
 sf::Texture ui;
 
 sf::Sprite playerObj;
+sf::Sprite enemyObj;
 
 // Engine functions
 void drawTilemapStatic(sf::Texture tex, int layer);
@@ -158,11 +160,7 @@ public:
         if (eChunk != chunk) return;
 
         // Calculate position
-        sf::RectangleShape enemyObj(sf::Vector2f(16.f, 32.f));
-        enemyObj.setPosition(sf::Vector2f(ePos + chunkOffset - screenPos[0]));
-        enemyObj.setOutlineColor(sf::Color::Red);
-        enemyObj.setFillColor(sf::Color(0, 0, 0, 0));
-        enemyObj.setOutlineThickness(1);
+        enemyObj.setPosition(ePos + chunkOffset - screenPos[0] - sf::Vector2f(8.f, 0.f));
 
         // Draw enemy
         buffer.draw(enemyObj);
@@ -277,6 +275,8 @@ int main() {
         if (!ui.loadFromFile("Tiles/Status UI.png")) cout << "\nUnable to load user interface graphics";
         if (!player.loadFromFile("Sprites/Generic Guy.png")) cout << "\nUnable to load player character.";
         playerObj.setTexture(player);
+        if (!enemy.loadFromFile("Sprites/Enemy 1.png")) cout << "\nUnable to load player character.";
+        enemyObj.setTexture(enemy);
 
         loadTilemap("Tiles/Title Screen.txt");
         loadTilemap("Tiles/Main Menu.txt", 1);
