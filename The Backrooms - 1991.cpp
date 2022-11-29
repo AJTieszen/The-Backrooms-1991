@@ -6,6 +6,7 @@
 #include <vector>
 #include <time.h> // used to seed RNG
 #include <stdlib.h> // for rand function
+#include <math.h> // GCC doesn't incluse by default
 
 using namespace std;
 
